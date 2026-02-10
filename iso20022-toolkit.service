@@ -1,0 +1,27 @@
+[Unit]
+Description=ISO 20022 XSD Toolkit Web Application
+Documentation=https://github.com/your-org/iso20022-toolkit
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/iso20022-toolkit
+Environment=PATH=/opt/iso20022-toolkit/venv/bin:/usr/bin
+ExecStart=/opt/iso20022-toolkit/venv/bin/python -c "from waitress import serve; from app import app; serve(app, host='0.0.0.0', port=5000, threads=4)"
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/iso20022-toolkit/app.log
+StandardError=append:/var/log/iso20022-toolkit/error.log
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/iso20022-toolkit/static /opt/iso20022-toolkit/logs
+
+[Install]
+WantedBy=multi-user.target

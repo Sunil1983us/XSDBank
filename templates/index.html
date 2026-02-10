@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISO 20022 Payment Toolkit - Professional Schema Analysis Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .header .version {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 50px;
+            animation: fadeInUp 0.8s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .section-description {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+
+        .tool-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .tool-card {
+            border: 2px solid #e1e8ed;
+            border-radius: 16px;
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: left;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tool-card:hover::before {
+            opacity: 1;
+        }
+
+        .tool-card:hover {
+            border-color: #667eea;
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .tool-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .tool-card.active::after {
+            content: '✓';
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .tool-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-card .icon {
+            font-size: 2.5rem;
+            margin-right: 15px;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .tool-card h3 {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin-bottom: 0;
+            font-weight: 600;
+        }
+
+        .tool-card .description {
+            font-size: 0.95rem;
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-card .features {
+            list-style: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e1e8ed;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-card .features li {
+            font-size: 0.85rem;
+            color: #95a5a6;
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .tool-card .features li::before {
+            content: '✓';
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .tool-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tool-badge.new {
+            background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%);
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .upload-area {
+            display: none;
+            border: 3px dashed #667eea;
+            border-radius: 16px;
+            padding: 60px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.02) 0%, rgba(118, 75, 162, 0.02) 100%);
+            position: relative;
+        }
+
+        .upload-area.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .upload-area:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border-color: #764ba2;
+            transform: scale(1.01);
+        }
+
+        .upload-area.dragover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-color: #667eea;
+            border-style: solid;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 5rem;
+            color: #667eea;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .upload-area h3 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+
+        .file-list {
+            margin-bottom: 25px;
+        }
+
+        .file-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f0 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            border: 1px solid #e1e8ed;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .file-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .file-icon {
+            font-size: 2rem;
+        }
+
+        .file-details .file-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1rem;
+        }
+
+        .file-details .file-size {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        .remove-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .remove-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+        }
+
+        .options-area {
+            display: none;
+            background: linear-gradient(135deg, #f8f9fa 0%, #f0f4ff 100%);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 2px solid #e1e8ed;
+        }
+
+        .options-area.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .options-title {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .options-title::before {
+            content: '⚙️';
+            margin-right: 10px;
+            font-size: 1.5rem;
+        }
+
+        .option-group {
+            margin-bottom: 20px;
+        }
+
+        .option-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95rem;
+        }
+
+        .option-group label .hint {
+            font-weight: 400;
+            color: #95a5a6;
+            font-size: 0.85rem;
+            margin-left: 5px;
+        }
+
+        .option-group input,
+        .option-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .option-group input:focus,
+        .option-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 16px 45px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-reset {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            margin-left: 15px;
+        }
+
+        .btn-reset:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .action-area {
+            text-align: center;
+            margin-top: 35px;
+            padding-top: 35px;
+            border-top: 2px solid #e1e8ed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+
+        .loading.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 25px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .loading-details {
+            color: #7f8c8d;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+
+        .results {
+            display: none;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-radius: 16px;
+            padding: 35px;
+            margin-top: 35px;
+            border: 2px solid #28a745;
+        }
+
+        .results.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .results h3 {
+            color: #155724;
+            margin-bottom: 25px;
+            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .results h3::before {
+            content: '✅';
+            margin-right: 12px;
+            font-size: 2rem;
+        }
+
+        .result-files {
+            list-style: none;
+        }
+
+        .result-file {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            border: 1px solid #28a745;
+            animation: slideIn 0.3s ease;
+        }
+
+        .result-file:hover {
+            transform: translateX(5px);
+            box-shadow: 0 6px 18px rgba(40, 167, 69, 0.2);
+        }
+
+        .result-file .file-info {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .result-file .file-icon {
+            font-size: 2.5rem;
+        }
+
+        .result-file .file-details .file-name {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1.05rem;
+        }
+
+        .result-file .file-details .file-type {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+
+        .result-file .file-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .result-file .btn-download,
+        .result-file .btn-preview {
+            padding: 10px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .result-file .btn-download {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .result-file .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .result-file .btn-preview {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+        }
+
+        .result-file .btn-preview:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(243, 156, 18, 0.3);
+        }
+
+        .message {
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .message.active {
+            display: block;
+        }
+
+        .error {
+            background: linear-gradient(135deg, #fee 0%, #fdd 100%);
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+        }
+
+        .success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+
+        .info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .message-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 250px;
+            background-color: #2c3e50;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Help section */
+        .help-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .help-toggle:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-card {
+                padding: 30px 20px;
+            }
+            
+            .tool-selector {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-reset {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
+
+        /* Success animation */
+        @keyframes successPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .results.active {
+            animation: fadeIn 0.5s ease, successPulse 0.6s ease 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💳 ISO 20022 Payment Message Toolkit</h1>
+            <p class="subtitle">Professional Payment Schema Analysis Platform</p>
+            <span class="version">v3.0 ISO 20022 Edition</span>
+        </div>
+
+        <div class="main-card">
+            <h2 class="section-title">Select Your Analysis Tool</h2>
+            <p class="section-description">
+                Choose from our comprehensive suite of professional XSD analysis tools. 
+                Each tool is designed for specific workflows and outputs detailed reports in multiple formats.
+            </p>
+            
+            <div class="tool-selector">
+                <div class="tool-card" data-tool="comprehensive">
+                    <div class="tool-header">
+                        <div class="icon">📊</div>
+                        <h3>Comprehensive Analysis</h3>
+                    </div>
+                    <div class="description">
+                        Extract ALL metadata from a single XSD schema including annotations, restrictions, 
+                        yellow/white field classification, patterns, and complete documentation.
+                    </div>
+                    <ul class="features">
+                        <li>21-column detailed analysis</li>
+                        <li>Yellow/White field classification</li>
+                        <li>All restrictions & patterns</li>
+                        <li>Business & usage rules</li>
+                    </ul>
+                    <span class="tool-badge new">⭐ Most Comprehensive</span>
+                </div>
+
+                <div class="tool-card" data-tool="document">
+                    <div class="tool-header">
+                        <div class="icon">📄</div>
+                        <h3>Schema Documentation</h3>
+                    </div>
+                    <div class="description">
+                        Generate complete documentation for a single XSD schema with message metadata, 
+                        XML structure, and quick reference guide.
+                    </div>
+                    <ul class="features">
+                        <li>3-sheet Excel workbook</li>
+                        <li>Message metadata summary</li>
+                        <li>Full XML structure</li>
+                        <li>Quick reference guide</li>
+                    </ul>
+                    <span class="tool-badge">Classic Documentation</span>
+                </div>
+
+                <div class="tool-card" data-tool="compare">
+                    <div class="tool-header">
+                        <div class="icon">🔀</div>
+                        <h3>Compare 2 Schemas</h3>
+                    </div>
+                    <div class="description">
+                        Compare two XSD schemas and receive comprehensive analysis in Excel, Word, and 
+                        interactive HTML formats with dynamic filters.
+                    </div>
+                    <ul class="features">
+                        <li>Excel (6 detailed sheets)</li>
+                        <li>Word document report</li>
+                        <li>Interactive HTML viewer</li>
+                        <li>Dynamic change filters</li>
+                    </ul>
+                    <span class="tool-badge">⚡ Most Popular</span>
+                </div>
+
+                <div class="tool-card" data-tool="multi_compare">
+                    <div class="tool-header">
+                        <div class="icon">📈</div>
+                        <h3>Compare 3+ Schemas</h3>
+                    </div>
+                    <div class="description">
+                        Multi-schema evolution tracking with pairwise analysis, master comparison matrix, 
+                        and stakeholder-specific reports (Management, Business, Developer, QA).
+                    </div>
+                    <ul class="features">
+                        <li>Pairwise comparisons</li>
+                        <li>Master matrix view</li>
+                        <li>5 stakeholder reports</li>
+                        <li>Version evolution tracking</li>
+                    </ul>
+                    <span class="tool-badge">Enterprise Edition</span>
+                </div>
+
+                <div class="tool-card" data-tool="test_data">
+                    <div class="tool-header">
+                        <div class="icon">🧪</div>
+                        <h3>Test Data Generator</h3>
+                    </div>
+                    <div class="description">
+                        Generate valid XML test files from your XSD schema. Choose from valid, minimal, 
+                        or maximal scenarios. Perfect for QA and development.
+                    </div>
+                    <ul class="features">
+                        <li>1-1000 test files</li>
+                        <li>3 generation scenarios</li>
+                        <li>Schema-compliant XML</li>
+                        <li>Realistic sample data</li>
+                    </ul>
+                    <span class="tool-badge">QA Favorite</span>
+                </div>
+            </div>
+
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h3>Drop XSD Files Here</h3>
+                <p>or click to browse • Supports .xsd files up to 100MB</p>
+                <input type="file" id="fileInput" multiple accept=".xsd" style="display: none;">
+            </div>
+
+            <div id="fileList" class="file-list"></div>
+
+            <div class="options-area" id="optionsArea">
+                <div class="options-title">Configuration Options</div>
+                <div id="optionsContent"></div>
+            </div>
+
+            <div class="action-area">
+                <button class="btn btn-primary" id="generateBtn" disabled>
+                    🚀 Generate Reports
+                </button>
+                <button class="btn btn-reset" id="resetBtn" style="display: none;">
+                    🔄 Start Over
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">Processing Your Files...</div>
+                <div class="loading-details" id="loadingDetails">
+                    This may take a few minutes depending on schema size
+                </div>
+            </div>
+
+            <div class="results" id="results">
+                <h3>Success! Your Reports Are Ready</h3>
+                <ul class="result-files" id="resultFiles"></ul>
+            </div>
+
+            <div class="message error" id="error"></div>
+            <div class="message success" id="success"></div>
+            <div class="message info" id="info"></div>
+        </div>
+    </div>
+
+    <div class="help-toggle" title="Help & Documentation">
+        ❓
+    </div>
+
+    <script>
+        let selectedTool = null;
+        let uploadedFiles = [];
+
+        // Tool selection with auto-refresh
+        document.querySelectorAll('.tool-card').forEach(card => {
+            card.addEventListener('click', () => {
+                // Auto-refresh: Reset everything when switching tools
+                if (selectedTool && selectedTool !== card.dataset.tool) {
+                    resetForm();
+                }
+                
+                document.querySelectorAll('.tool-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                selectedTool = card.dataset.tool;
+                
+                document.getElementById('uploadArea').classList.add('active');
+                showOptions(selectedTool);
+                updateUI();
+                
+                // Show info message about selected tool
+                showInfo(getToolInfo(selectedTool));
+            });
+        });
+
+        function getToolInfo(tool) {
+            const info = {
+                'comprehensive': 'You selected Comprehensive Analysis - this will extract ALL metadata including yellow/white fields, annotations, restrictions, and patterns. Upload 1 XSD file.',
+                'document': 'You selected Schema Documentation - this will generate a 3-sheet Excel workbook with complete schema structure. Upload 1 XSD file.',
+                'compare': 'You selected Compare 2 Schemas - this will generate Excel + Word + HTML reports with dynamic filters. Upload 2 XSD files.',
+                'multi_compare': 'You selected Multi-Schema Comparison - this will create pairwise analysis and stakeholder reports. Upload 3 or more XSD files.',
+                'test_data': 'You selected Test Data Generator - this will create valid XML test files from your schema. Upload 1 XSD file.'
+            };
+            return info[tool] || 'Tool selected';
+        }
+
+        // Upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            const formData = new FormData();
+            Array.from(files).forEach(file => {
+                if (file.name.endsWith('.xsd')) {
+                    formData.append('files[]', file);
+                }
+            });
+
+            if (formData.getAll('files[]').length === 0) {
+                showError('Please upload valid .xsd files');
+                return;
+            }
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    uploadedFiles = uploadedFiles.concat(data.files);
+                    displayFiles();
+                    updateUI();
+                    showSuccess(`Successfully uploaded ${data.files.length} file(s)`);
+                } else {
+                    showError(data.error);
+                }
+            })
+            .catch(err => showError(err.message));
+        }
+
+        function displayFiles() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = uploadedFiles.map((file, index) => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-icon">📄</div>
+                        <div class="file-details">
+                            <div class="file-name">${file.split('_').slice(3).join('_')}</div>
+                            <div class="file-size">XSD Schema File</div>
+                        </div>
+                    </div>
+                    <button class="remove-btn" onclick="removeFile(${index})">✖ Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            displayFiles();
+            updateUI();
+        }
+
+        function showOptions(tool) {
+            const optionsContent = document.getElementById('optionsContent');
+            const optionsArea = document.getElementById('optionsArea');
+            
+            let html = '';
+            
+            if (tool === 'comprehensive') {
+                html = `
+                    <div class="option-group">
+                        <label>Output File Name <span class="hint">(optional)</span></label>
+                        <input type="text" id="output_name" placeholder="e.g., my_comprehensive_analysis">
+                    </div>
+                `;
+            } else if (tool === 'compare') {
+                html = `
+                    <div class="option-group">
+                        <label>Schema 1 Name <span class="hint">(optional - helps identify)</span></label>
+                        <input type="text" id="name1" placeholder="e.g., Production V1.0">
+                    </div>
+                    <div class="option-group">
+                        <label>Schema 2 Name <span class="hint">(optional - helps identify)</span></label>
+                        <input type="text" id="name2" placeholder="e.g., Testing V2.0">
+                    </div>
+                `;
+            } else if (tool === 'multi_compare') {
+                html = `
+                    <div class="option-group">
+                        <label>Schema Names <span class="hint">(comma-separated, optional)</span></label>
+                        <input type="text" id="names" placeholder="e.g., V1.0, V2.0, V3.0">
+                    </div>
+                `;
+            } else if (tool === 'test_data') {
+                html = `
+                    <div class="option-group">
+                        <label>Number of Test Files <span class="hint">(1-1000)</span></label>
+                        <input type="number" id="num_files" value="10" min="1" max="1000">
+                    </div>
+                    <div class="option-group">
+                        <label>Test Scenario</label>
+                        <select id="scenario">
+                            <option value="valid">Valid - Realistic data (Recommended)</option>
+                            <option value="minimal">Minimal - Required fields only</option>
+                            <option value="maximal">Maximal - All possible fields</option>
+                        </select>
+                    </div>
+                `;
+            }
+            
+            if (html) {
+                optionsContent.innerHTML = html;
+                optionsArea.classList.add('active');
+            } else {
+                optionsArea.classList.remove('active');
+            }
+        }
+
+        function updateUI() {
+            const minFiles = {
+                'comprehensive': 1,
+                'document': 1,
+                'compare': 2,
+                'multi_compare': 2,
+                'test_data': 1
+            };
+
+            const canGenerate = selectedTool && uploadedFiles.length >= (minFiles[selectedTool] || 1);
+            document.getElementById('generateBtn').disabled = !canGenerate;
+        }
+
+        // Generate reports
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            hideMessages();
+            
+            const options = {};
+            if (selectedTool === 'compare') {
+                options.name1 = document.getElementById('name1')?.value || '';
+                options.name2 = document.getElementById('name2')?.value || '';
+            } else if (selectedTool === 'multi_compare') {
+                options.names = document.getElementById('names')?.value || '';
+            } else if (selectedTool === 'test_data') {
+                options.num_files = document.getElementById('num_files')?.value || 10;
+                options.scenario = document.getElementById('scenario')?.value || 'valid';
+            }
+
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('loadingDetails').textContent = 
+                `Analyzing ${uploadedFiles.length} schema file(s)... Processing may take 2-5 minutes for large schemas.`;
+
+            try {
+                const response = await fetch('/run_tool', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        tool: selectedTool,
+                        files: uploadedFiles,
+                        options: options
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data);
+                    document.getElementById('resetBtn').style.display = 'inline-block';
+                } else {
+                    showError(data.error);
+                }
+            } catch (err) {
+                showError(`Error: ${err.message}`);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        });
+
+        // Reset button
+        document.getElementById('resetBtn').addEventListener('click', resetForm);
+
+        function resetForm() {
+            // Clear everything
+            uploadedFiles = [];
+            selectedTool = null;
+            
+            // Reset UI
+            document.querySelectorAll('.tool-card').forEach(c => c.classList.remove('active'));
+            document.getElementById('uploadArea').classList.remove('active');
+            document.getElementById('optionsArea').classList.remove('active');
+            document.getElementById('results').classList.remove('active');
+            document.getElementById('fileList').innerHTML = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('resetBtn').style.display = 'none';
+            
+            hideMessages();
+            updateUI();
+            
+            showInfo('Form reset. Select a tool to start over.');
+        }
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            const resultFiles = document.getElementById('resultFiles');
+            
+            resultFiles.innerHTML = data.files.map(file => {
+                const ext = file.split('.').pop();
+                const icons = {
+                    'xlsx': '📊',
+                    'docx': '📄',
+                    'html': '🌐',
+                    'zip': '📦'
+                };
+                const icon = icons[ext] || '📄';
+                const canPreview = ext === 'html';
+                
+                return `
+                    <li class="result-file">
+                        <div class="file-info">
+                            <div class="file-icon">${icon}</div>
+                            <div class="file-details">
+                                <div class="file-name">${file}</div>
+                                <div class="file-type">${ext.toUpperCase()} File • Ready to download</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <a href="/download/${file}" class="btn-download">⬇️ Download</a>
+                            ${canPreview ? `<a href="/preview/${file}" target="_blank" class="btn-preview">👁️ Preview</a>` : ''}
+                        </div>
+                    </li>
+                `;
+            }).join('');
+            
+            results.classList.add('active');
+            showSuccess(`${data.message} • ${data.files.length} file(s) generated successfully!`);
+            
+            // Scroll to results
+            results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.innerHTML = `<span class="message-icon">❌</span> ${message}`;
+            error.classList.add('active');
+            setTimeout(() => error.classList.remove('active'), 8000);
+        }
+
+        function showSuccess(message) {
+            const success = document.getElementById('success');
+            success.innerHTML = `<span class="message-icon">✅</span> ${message}`;
+            success.classList.add('active');
+            setTimeout(() => success.classList.remove('active'), 8000);
+        }
+
+        function showInfo(message) {
+            const info = document.getElementById('info');
+            info.innerHTML = `<span class="message-icon">ℹ️</span> ${message}`;
+            info.classList.add('active');
+            setTimeout(() => info.classList.remove('active'), 6000);
+        }
+
+        function hideMessages() {
+            document.getElementById('error').classList.remove('active');
+            document.getElementById('success').classList.remove('active');
+            document.getElementById('info').classList.remove('active');
+            document.getElementById('results').classList.remove('active');
+        }
+
+        // Help toggle
+        document.querySelector('.help-toggle').addEventListener('click', () => {
+            alert('XSD Professional Toolkit v2.0\n\nFor documentation, visit the included guides:\n• README.md - Quick start\n• DEPLOYMENT_GUIDE.md - Full manual\n• User guides for each tool\n\nNeed help? Check the tool descriptions above each option.');
+        });
+    </script>
+</body>
+</html>

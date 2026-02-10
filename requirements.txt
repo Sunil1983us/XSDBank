@@ -1,0 +1,48 @@
+# ISO 20022 Payment Message Toolkit Requirements
+# Local Bank Network Deployment Version
+
+# ============================================================
+# Core Dependencies
+# ============================================================
+
+# XML Processing
+lxml==5.1.0
+
+# Excel file generation
+openpyxl==3.1.2
+
+# Word document generation
+python-docx==1.1.0
+
+# Test data generation with regex patterns
+rstr==3.2.0
+
+# HTML Report Generation (required for comparison HTML preview)
+Jinja2>=3.1.0
+
+# ============================================================
+# Web Framework
+# ============================================================
+
+# Flask web framework
+Flask==3.0.0
+
+# Werkzeug (Flask dependency)
+Werkzeug>=3.0.0
+
+# ============================================================
+# Production Server (Optional - for better performance)
+# ============================================================
+
+# Waitress - Pure Python WSGI server (Windows compatible)
+waitress==2.1.2
+
+# ============================================================
+# Optional Dependencies
+# ============================================================
+
+# For better pattern generation (uncomment if needed)
+# faker==22.0.0
+
+# For scheduled cleanup tasks (uncomment if needed)
+# apscheduler==3.10.4
