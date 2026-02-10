@@ -861,24 +861,6 @@
                     <span class="tool-badge">⚡ Most Popular</span>
                 </div>
 
-                <div class="tool-card" data-tool="multi_compare">
-                    <div class="tool-header">
-                        <div class="icon">📈</div>
-                        <h3>Compare 3+ Schemas</h3>
-                    </div>
-                    <div class="description">
-                        Multi-schema evolution tracking with pairwise analysis, master comparison matrix, 
-                        and stakeholder-specific reports (Management, Business, Developer, QA).
-                    </div>
-                    <ul class="features">
-                        <li>Pairwise comparisons</li>
-                        <li>Master matrix view</li>
-                        <li>5 stakeholder reports</li>
-                        <li>Version evolution tracking</li>
-                    </ul>
-                    <span class="tool-badge">Enterprise Edition</span>
-                </div>
-
                 <div class="tool-card" data-tool="test_data">
                     <div class="tool-header">
                         <div class="icon">🧪</div>
@@ -974,7 +956,6 @@
                 'comprehensive': 'You selected Comprehensive Analysis - this will extract ALL metadata including yellow/white fields, annotations, restrictions, and patterns. Upload 1 XSD file.',
                 'document': 'You selected Schema Documentation - this will generate a 3-sheet Excel workbook with complete schema structure. Upload 1 XSD file.',
                 'compare': 'You selected Compare 2 Schemas - this will generate Excel + Word + HTML reports with dynamic filters. Upload 2 XSD files.',
-                'multi_compare': 'You selected Multi-Schema Comparison - this will create pairwise analysis and stakeholder reports. Upload 3 or more XSD files.',
                 'test_data': 'You selected Test Data Generator - this will create valid XML test files from your schema. Upload 1 XSD file.'
             };
             return info[tool] || 'Tool selected';
@@ -1074,13 +1055,6 @@
                         <input type="text" id="name2" placeholder="e.g., Testing V2.0">
                     </div>
                 `;
-            } else if (tool === 'multi_compare') {
-                html = `
-                    <div class="option-group">
-                        <label>Schema Names <span class="hint">(comma-separated, optional)</span></label>
-                        <input type="text" id="names" placeholder="e.g., V1.0, V2.0, V3.0">
-                    </div>
-                `;
             } else if (tool === 'test_data') {
                 html = `
                     <div class="option-group">
@@ -1111,7 +1085,6 @@
                 'comprehensive': 1,
                 'document': 1,
                 'compare': 2,
-                'multi_compare': 2,
                 'test_data': 1
             };
 
@@ -1127,8 +1100,6 @@
             if (selectedTool === 'compare') {
                 options.name1 = document.getElementById('name1')?.value || '';
                 options.name2 = document.getElementById('name2')?.value || '';
-            } else if (selectedTool === 'multi_compare') {
-                options.names = document.getElementById('names')?.value || '';
             } else if (selectedTool === 'test_data') {
                 options.num_files = document.getElementById('num_files')?.value || 10;
                 options.scenario = document.getElementById('scenario')?.value || 'valid';

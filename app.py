@@ -217,7 +217,7 @@ def execute_tool(tool, file_paths, output_base, options):
         
         if tool == 'comprehensive':
             # Comprehensive analyzer
-            script = os.path.join(tools_dir, 'iso20022_comprehensive_analyzer.py')
+            script = os.path.join(tools_dir, 'schema_analyzer.py')
             output_file = os.path.join(output_dir, f"{output_base}_comprehensive.xlsx")
             
             cmd = [sys.executable, script, file_paths[0], '-o', output_file]
@@ -234,7 +234,7 @@ def execute_tool(tool, file_paths, output_base, options):
                 return {'success': False, 'error': f'Analysis failed: {error_msg}'}
         
         elif tool == 'document':
-            script = os.path.join(tools_dir, 'xsd_to_xml_enhanced.py')
+            script = os.path.join(tools_dir, 'schema_documenter.py')
             output_file = os.path.join(output_dir, f"{output_base}_docs.xlsx")
             
             cmd = [sys.executable, script, file_paths[0], '-o', output_file]
@@ -253,7 +253,7 @@ def execute_tool(tool, file_paths, output_base, options):
             if len(file_paths) < 2:
                 return {'success': False, 'error': 'Need 2 files to compare'}
             
-            script = os.path.join(tools_dir, 'xsd_comparison_enhanced.py')
+            script = os.path.join(tools_dir, 'schema_comparator.py')
             output_file = os.path.join(output_dir, f"{output_base}_compare.xlsx")
             
             cmd = [sys.executable, script, file_paths[0], file_paths[1], '-o', output_file]
@@ -281,37 +281,8 @@ def execute_tool(tool, file_paths, output_base, options):
             else:
                 return {'success': False, 'error': 'Comparison failed'}
         
-        elif tool == 'multi_compare':
-            if len(file_paths) < 2:
-                return {'success': False, 'error': 'Need at least 2 files'}
-            
-            script = os.path.join(tools_dir, 'xsd_ultimate_compare_enhanced.py')
-            output_base_path = os.path.join(output_dir, output_base)
-            
-            cmd = [sys.executable, script] + file_paths + ['-o', output_base_path]
-            
-            if options.get('names'):
-                names = [n.strip() for n in options['names'].split(',')]
-                cmd.extend(['-n'] + names)
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout * 2)
-            
-            if result.returncode == 0:
-                generated_files = []
-                for f in os.listdir(output_dir):
-                    if f.startswith(os.path.basename(output_base)):
-                        generated_files.append(f)
-                
-                return {
-                    'success': True,
-                    'message': f'Generated {len(generated_files)} files!',
-                    'files': sorted(generated_files)
-                }
-            else:
-                return {'success': False, 'error': 'Multi-comparison failed'}
-        
         elif tool == 'test_data':
-            script = os.path.join(tools_dir, 'test_data_generator.py')
+            script = os.path.join(tools_dir, 'xml_generator.py')
             num_files = int(options.get('num_files', 10))
             scenario = options.get('scenario', 'valid')
             output_folder = os.path.join(output_dir, f"{output_base}_testdata")
