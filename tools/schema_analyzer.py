@@ -169,22 +169,30 @@ class ISO20022Analyzer:
         if annotation is not None:
             docs = annotation.findall('xs:documentation', self.ns)
             doc_texts = []
+            usage_rules = []
+            
             for doc in docs:
                 source = doc.get('source', '').strip()
                 text = (doc.text or '').strip()
                 
-                # Separate by source
+                # Skip empty text
+                if not text:
+                    continue
+                
+                # Categorize by source
                 if source == 'Rulebook':
                     result['rulebook'] = text
-                elif source not in ['Yellow Field', 'White Field', '']:
-                    # Other sources go to usage rules
-                    if text:
-                        result['usage_rules'] += f"{source}: {text} "
-                elif not source and text:
-                    # No source attribute - general documentation
+                elif source == 'Usage Rule':
+                    usage_rules.append(text)
+                elif source in ['Name', 'Definition', '']:
+                    # General documentation (Name, Definition, or no source)
                     doc_texts.append(text)
+                elif source not in ['Yellow Field', 'White Field']:
+                    # Other sources (like custom annotations)
+                    usage_rules.append(f"{source}: {text}")
             
             result['documentation'] = ' | '.join(doc_texts) if doc_texts else ''
+            result['usage_rules'] = ' | '.join(usage_rules) if usage_rules else ''
         
         return result
     
@@ -211,14 +219,38 @@ class ISO20022Analyzer:
         return '⚫ NA (Not in XSD)'
     
     def _extract_restriction_from_element(self, element):
-        """Extract restriction information"""
+        """Extract restriction information from element or its type definition"""
         result = {}
         
+        # First check for inline simpleType
         simple_type = element.find('xs:simpleType', self.ns)
         if simple_type is not None:
             restriction = simple_type.find('xs:restriction', self.ns)
             if restriction is not None:
                 result = self._extract_restriction_details(restriction)
+                return result
+        
+        # Check type reference
+        elem_type = element.get('type', '')
+        if ':' in elem_type:
+            elem_type = elem_type.split(':')[-1]
+        
+        if elem_type and elem_type in self.type_definitions:
+            type_def = self.type_definitions[elem_type]
+            
+            # Check if it's a simpleType with restriction
+            if type_def.tag.endswith('simpleType'):
+                restriction = type_def.find('xs:restriction', self.ns)
+                if restriction is not None:
+                    result = self._extract_restriction_details(restriction)
+            
+            # Check for complexType with simpleContent restriction
+            elif type_def.tag.endswith('complexType'):
+                simple_content = type_def.find('xs:simpleContent', self.ns)
+                if simple_content is not None:
+                    restriction = simple_content.find('xs:restriction', self.ns)
+                    if restriction is not None:
+                        result = self._extract_restriction_details(restriction)
         
         return result
     

@@ -503,7 +503,7 @@ class XSDParser:
         return element_data
     
     def _expand_complex_type(self, complex_type, parent_path, level, sequence):
-        """Expand complex type"""
+        """Expand complex type - prioritize restricted definitions over base types"""
         children = []
         
         # Handle complexContent
@@ -512,13 +512,28 @@ class XSDParser:
             restriction = complex_content.find(f'{self.ns_prefix}restriction', self.NAMESPACES)
             extension = complex_content.find(f'{self.ns_prefix}extension', self.NAMESPACES)
             
-            target = restriction if restriction is not None else extension
-            if target is not None:
-                base = self._get_attribute(target, 'base')
+            if restriction is not None:
+                # For restrictions, use the restricted elements directly (they have Yellow/White annotations)
+                # Don't expand base type - it would create duplicates without annotations
+                restricted_children = self._parse_type_content(restriction, parent_path, level, sequence)
+                
+                # If restriction has elements, use them (they have the annotations)
+                if restricted_children:
+                    children.extend(restricted_children)
+                else:
+                    # If restriction has no elements, fall back to base type
+                    base = self._get_attribute(restriction, 'base')
+                    base_type_def = self._get_type_definition(base)
+                    if base_type_def is not None:
+                        children.extend(self._expand_complex_type(base_type_def, parent_path, level, sequence))
+            
+            elif extension is not None:
+                # For extensions, include both base type and extended content
+                base = self._get_attribute(extension, 'base')
                 base_type_def = self._get_type_definition(base)
                 if base_type_def is not None:
                     children.extend(self._expand_complex_type(base_type_def, parent_path, level, sequence))
-                children.extend(self._parse_type_content(target, parent_path, level, sequence))
+                children.extend(self._parse_type_content(extension, parent_path, level, sequence))
         else:
             children.extend(self._parse_type_content(complex_type, parent_path, level, sequence))
         

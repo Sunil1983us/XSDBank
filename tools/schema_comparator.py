@@ -262,6 +262,15 @@ class XSDComparator:
         # Get restrictions
         restrictions = self._get_restrictions(element_node, element_type, ns_prefix, type_cache)
         
+        # Get Yellow/White field classification
+        field_class = self._classify_field_from_xsd(element_node)
+        
+        # Get documentation details (Rulebook, Usage Rules)
+        documentation = self._extract_documentation(element_node, ns_prefix)
+        
+        # Get enumeration values if applicable
+        enumerations = self._get_enumerations(element_node, element_type, ns_prefix, type_cache)
+        
         # Store element info
         elements_dict[path] = {
             'sequence': sequence['count'],
@@ -274,7 +283,11 @@ class XSDComparator:
             'fixed': fixed,
             'restrictions': restrictions,
             'level': level,
-            'node_type': 'element'
+            'node_type': 'element',
+            'field_class': field_class,
+            'rulebook': documentation.get('rulebook', ''),
+            'usage_rules': documentation.get('usage_rules', ''),
+            'enumerations': enumerations
         }
         
         # Expand children
@@ -287,6 +300,51 @@ class XSDComparator:
                 tag_name = self._get_tag_name(type_def)
                 if tag_name == 'complexType':
                     self._expand_complex_type(type_def, path, level + 1, sequence, elements_dict, ns_prefix, type_cache)
+    
+    def _extract_documentation(self, element_node, ns_prefix):
+        """Extract Rulebook and Usage Rules from element annotations"""
+        result = {'rulebook': '', 'usage_rules': ''}
+        
+        annotation = element_node.find(f'{ns_prefix}annotation', self.NAMESPACES)
+        if annotation is not None:
+            usage_rules = []
+            for doc in annotation.findall(f'{ns_prefix}documentation', self.NAMESPACES):
+                source = doc.get('source', '').strip()
+                text = (doc.text or '').strip()
+                
+                if source == 'Rulebook' and text:
+                    result['rulebook'] = text
+                elif source == 'Usage Rule' and text:
+                    usage_rules.append(text)
+                elif source == 'Format Rule' and text:
+                    usage_rules.append(f"[Format] {text}")
+            
+            result['usage_rules'] = ' | '.join(usage_rules) if usage_rules else ''
+        
+        return result
+    
+    def _get_enumerations(self, element_node, element_type, ns_prefix, type_cache):
+        """Get enumeration values for an element"""
+        enums = []
+        
+        # Check inline simpleType
+        simple_type = element_node.find(f'{ns_prefix}simpleType', self.NAMESPACES)
+        if simple_type is not None:
+            restriction = simple_type.find(f'{ns_prefix}restriction', self.NAMESPACES)
+            if restriction is not None:
+                for enum in restriction.findall(f'{ns_prefix}enumeration', self.NAMESPACES):
+                    enums.append(enum.get('value', ''))
+        
+        # Check type reference
+        if not enums and element_type:
+            type_def = type_cache.get(element_type)
+            if type_def is not None:
+                restriction = type_def.find(f'{ns_prefix}restriction', self.NAMESPACES)
+                if restriction is not None:
+                    for enum in restriction.findall(f'{ns_prefix}enumeration', self.NAMESPACES):
+                        enums.append(enum.get('value', ''))
+        
+        return sorted(enums) if enums else []
     
     def _expand_complex_type(self, complex_type, parent_path, level, sequence, elements_dict, ns_prefix, type_cache):
         """Expand complex type"""
@@ -572,6 +630,195 @@ class XSDComparator:
                 'sequence1': elem1['sequence'],
                 'sequence2': elem2['sequence']
             })
+        
+        # Yellow/White Field Classification change
+        field_class1 = elem1.get('field_class', '⚫ NA (Not in XSD)')
+        field_class2 = elem2.get('field_class', '⚫ NA (Not in XSD)')
+        
+        if field_class1 != field_class2:
+            # Determine severity based on change type
+            if 'Yellow' in field_class1 and 'White' in field_class2:
+                severity = 'HIGH'
+                impact = f"Field classification DOWNGRADED from Yellow (mandatory for scheme) to White (optional). Business impact: field may no longer be required."
+            elif 'White' in field_class1 and 'Yellow' in field_class2:
+                severity = 'HIGH'
+                impact = f"Field classification UPGRADED from White (optional) to Yellow (mandatory for scheme). Business impact: field is now required."
+            elif 'NA' in field_class1 and 'Yellow' in field_class2:
+                severity = 'MEDIUM'
+                impact = f"Field now classified as Yellow (mandatory for scheme). New ISO 20022 requirement."
+            elif 'NA' in field_class1 and 'White' in field_class2:
+                severity = 'LOW'
+                impact = f"Field now classified as White (optional). New ISO 20022 classification."
+            elif 'Yellow' in field_class1 and 'NA' in field_class2:
+                severity = 'MEDIUM'
+                impact = f"Field classification removed (was Yellow). May indicate field is no longer part of scheme specification."
+            elif 'White' in field_class1 and 'NA' in field_class2:
+                severity = 'LOW'
+                impact = f"Field classification removed (was White). May indicate field is no longer part of scheme specification."
+            else:
+                severity = 'MEDIUM'
+                impact = f"Field classification changed."
+            
+            self.differences.append({
+                'type': 'FIELD_CLASS_CHANGED',
+                'severity': severity,
+                'path': path,
+                'element': elem1['name'],
+                'schema1_value': field_class1,
+                'schema2_value': field_class2,
+                'schema1_type': elem1['type'],
+                'schema2_type': elem2['type'],
+                'schema1_min': elem1['min_occurs'],
+                'schema2_min': elem2['min_occurs'],
+                'schema1_max': elem1['max_occurs'],
+                'schema2_max': elem2['max_occurs'],
+                'impact': impact,
+                'sequence1': elem1['sequence'],
+                'sequence2': elem2['sequence']
+            })
+        
+        # Fixed value change
+        fixed1 = elem1.get('fixed', '')
+        fixed2 = elem2.get('fixed', '')
+        if fixed1 != fixed2:
+            self.differences.append({
+                'type': 'FIXED_VALUE_CHANGED',
+                'severity': 'HIGH',
+                'path': path,
+                'element': elem1['name'],
+                'schema1_value': fixed1 or 'None',
+                'schema2_value': fixed2 or 'None',
+                'schema1_type': elem1['type'],
+                'schema2_type': elem2['type'],
+                'schema1_min': elem1['min_occurs'],
+                'schema2_min': elem2['min_occurs'],
+                'schema1_max': elem1['max_occurs'],
+                'schema2_max': elem2['max_occurs'],
+                'impact': f"Fixed value changed from '{fixed1 or 'None'}' to '{fixed2 or 'None'}'. Messages must use new fixed value.",
+                'sequence1': elem1['sequence'],
+                'sequence2': elem2['sequence']
+            })
+        
+        # Default value change
+        default1 = elem1.get('default', '')
+        default2 = elem2.get('default', '')
+        if default1 != default2:
+            self.differences.append({
+                'type': 'DEFAULT_VALUE_CHANGED',
+                'severity': 'MEDIUM',
+                'path': path,
+                'element': elem1['name'],
+                'schema1_value': default1 or 'None',
+                'schema2_value': default2 or 'None',
+                'schema1_type': elem1['type'],
+                'schema2_type': elem2['type'],
+                'schema1_min': elem1['min_occurs'],
+                'schema2_min': elem2['min_occurs'],
+                'schema1_max': elem1['max_occurs'],
+                'schema2_max': elem2['max_occurs'],
+                'impact': f"Default value changed from '{default1 or 'None'}' to '{default2 or 'None'}'.",
+                'sequence1': elem1['sequence'],
+                'sequence2': elem2['sequence']
+            })
+        
+        # Rulebook note change
+        rulebook1 = elem1.get('rulebook', '')
+        rulebook2 = elem2.get('rulebook', '')
+        if rulebook1 != rulebook2:
+            if rulebook1 and rulebook2:
+                severity = 'MEDIUM'
+                impact = f"Rulebook note changed. Review business requirements."
+            elif rulebook2 and not rulebook1:
+                severity = 'MEDIUM'
+                impact = f"New Rulebook note added: {rulebook2[:100]}..."
+            else:
+                severity = 'LOW'
+                impact = f"Rulebook note removed."
+            
+            self.differences.append({
+                'type': 'RULEBOOK_CHANGED',
+                'severity': severity,
+                'path': path,
+                'element': elem1['name'],
+                'schema1_value': (rulebook1[:100] + '...') if len(rulebook1) > 100 else rulebook1 or 'None',
+                'schema2_value': (rulebook2[:100] + '...') if len(rulebook2) > 100 else rulebook2 or 'None',
+                'schema1_type': elem1['type'],
+                'schema2_type': elem2['type'],
+                'schema1_min': elem1['min_occurs'],
+                'schema2_min': elem2['min_occurs'],
+                'schema1_max': elem1['max_occurs'],
+                'schema2_max': elem2['max_occurs'],
+                'impact': impact,
+                'sequence1': elem1['sequence'],
+                'sequence2': elem2['sequence']
+            })
+        
+        # Usage rules change
+        usage1 = elem1.get('usage_rules', '')
+        usage2 = elem2.get('usage_rules', '')
+        if usage1 != usage2:
+            if usage1 and usage2:
+                severity = 'MEDIUM'
+                impact = f"Usage rules changed. Review implementation requirements."
+            elif usage2 and not usage1:
+                severity = 'MEDIUM'
+                impact = f"New usage rules added."
+            else:
+                severity = 'LOW'
+                impact = f"Usage rules removed."
+            
+            self.differences.append({
+                'type': 'USAGE_RULES_CHANGED',
+                'severity': severity,
+                'path': path,
+                'element': elem1['name'],
+                'schema1_value': (usage1[:100] + '...') if len(usage1) > 100 else usage1 or 'None',
+                'schema2_value': (usage2[:100] + '...') if len(usage2) > 100 else usage2 or 'None',
+                'schema1_type': elem1['type'],
+                'schema2_type': elem2['type'],
+                'schema1_min': elem1['min_occurs'],
+                'schema2_min': elem2['min_occurs'],
+                'schema1_max': elem1['max_occurs'],
+                'schema2_max': elem2['max_occurs'],
+                'impact': impact,
+                'sequence1': elem1['sequence'],
+                'sequence2': elem2['sequence']
+            })
+        
+        # Enumeration change
+        enums1 = elem1.get('enumerations', [])
+        enums2 = elem2.get('enumerations', [])
+        if enums1 != enums2:
+            added_enums = set(enums2) - set(enums1)
+            removed_enums = set(enums1) - set(enums2)
+            
+            if removed_enums:
+                severity = 'HIGH'
+                impact = f"Enumeration values removed: {', '.join(sorted(removed_enums))}. Breaking change for existing data."
+            elif added_enums:
+                severity = 'MEDIUM'
+                impact = f"Enumeration values added: {', '.join(sorted(added_enums))}. New values available."
+            else:
+                severity = 'LOW'
+                impact = f"Enumeration values changed."
+            
+            self.differences.append({
+                'type': 'ENUMERATION_CHANGED',
+                'severity': severity,
+                'path': path,
+                'element': elem1['name'],
+                'schema1_value': ', '.join(enums1) if enums1 else 'None',
+                'schema2_value': ', '.join(enums2) if enums2 else 'None',
+                'schema1_type': elem1['type'],
+                'schema2_type': elem2['type'],
+                'schema1_min': elem1['min_occurs'],
+                'schema2_min': elem2['min_occurs'],
+                'schema1_max': elem1['max_occurs'],
+                'schema2_max': elem2['max_occurs'],
+                'impact': impact,
+                'sequence1': elem1['sequence'],
+                'sequence2': elem2['sequence']
+            })
 
 
 class ComparisonReportGenerator:
@@ -594,12 +841,15 @@ class ComparisonReportGenerator:
         self._create_removed_fields_sheet()
         self._create_changed_fields_sheet()
         self._create_type_restriction_sheet()
+        self._create_field_classification_sheet()
+        self._create_documentation_changes_sheet()
+        self._create_enumeration_changes_sheet()
         
         self.wb.save(self.output_file)
         
         print(f"\n✅ Comparison report saved: {self.output_file}")
         print(f"   📊 Total differences: {len(self.comparator.differences)}")
-        print(f"   📄 Sheets created: 6")
+        print(f"   📄 Sheets created: 10")
     
     def _create_summary_sheet(self):
         """Create executive summary"""
@@ -945,6 +1195,220 @@ class ComparisonReportGenerator:
         if ws.max_row > 1:
             ws.auto_filter.ref = f"A1:G{ws.max_row}"
     
+    def _create_field_classification_sheet(self):
+        """Create Yellow/White field classification changes sheet"""
+        ws = self.wb.create_sheet("Field Classification Changes")
+        
+        headers = ['Severity', 'Element', 'Path', 
+                   f'{self.comparator.name1} Classification', 
+                   f'{self.comparator.name2} Classification',
+                   'Change Direction', 'Business Impact']
+        ws.append(headers)
+        
+        # Style headers
+        header_fill = PatternFill(start_color='7030A0', end_color='7030A0', fill_type='solid')  # Purple for classification
+        for cell in ws[1]:
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        
+        # Filter for field classification changes only
+        field_class_changes = [d for d in self.comparator.differences if d.get('type') == 'FIELD_CLASS_CHANGED']
+        
+        # Sort by severity (HIGH first)
+        severity_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
+        field_class_changes.sort(key=lambda x: severity_order.get(x.get('severity', 'LOW'), 3))
+        
+        for diff in field_class_changes:
+            class1 = diff.get('schema1_value', '')
+            class2 = diff.get('schema2_value', '')
+            
+            # Determine change direction
+            if 'Yellow' in class1 and 'White' in class2:
+                direction = '🟡→⚪ Downgraded'
+            elif 'White' in class1 and 'Yellow' in class2:
+                direction = '⚪→🟡 Upgraded'
+            elif 'NA' in class1 and 'Yellow' in class2:
+                direction = '⚫→🟡 New Yellow'
+            elif 'NA' in class1 and 'White' in class2:
+                direction = '⚫→⚪ New White'
+            elif 'Yellow' in class1 and 'NA' in class2:
+                direction = '🟡→⚫ Removed'
+            elif 'White' in class1 and 'NA' in class2:
+                direction = '⚪→⚫ Removed'
+            else:
+                direction = 'Changed'
+            
+            ws.append([
+                diff.get('severity', ''),
+                diff.get('element', ''),
+                diff.get('path', ''),
+                class1,
+                class2,
+                direction,
+                diff.get('impact', '')
+            ])
+            
+            # Color code rows by severity
+            row_num = ws.max_row
+            severity = diff.get('severity', 'LOW')
+            if severity == 'HIGH':
+                fill_color = 'FFCDD2'  # Light red
+            elif severity == 'MEDIUM':
+                fill_color = 'FFF9C4'  # Light yellow
+            else:
+                fill_color = 'C8E6C9'  # Light green
+            
+            for cell in ws[row_num]:
+                cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
+        
+        # Column widths
+        ws.column_dimensions['A'].width = 12
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 55
+        ws.column_dimensions['D'].width = 28
+        ws.column_dimensions['E'].width = 28
+        ws.column_dimensions['F'].width = 18
+        ws.column_dimensions['G'].width = 60
+        
+        ws.freeze_panes = 'A2'
+        if ws.max_row > 1:
+            ws.auto_filter.ref = f"A1:G{ws.max_row}"
+    
+    def _create_documentation_changes_sheet(self):
+        """Create Rulebook and Usage Rules changes sheet"""
+        ws = self.wb.create_sheet("Documentation Changes")
+        
+        headers = ['Severity', 'Change Type', 'Element', 'Path', 
+                   f'{self.comparator.name1}', 
+                   f'{self.comparator.name2}',
+                   'Business Impact']
+        ws.append(headers)
+        
+        # Style headers
+        header_fill = PatternFill(start_color='2E7D32', end_color='2E7D32', fill_type='solid')  # Green for docs
+        for cell in ws[1]:
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        
+        # Filter for documentation changes
+        doc_changes = [d for d in self.comparator.differences 
+                       if d.get('type') in ['RULEBOOK_CHANGED', 'USAGE_RULES_CHANGED']]
+        
+        # Sort by type then severity
+        type_order = {'RULEBOOK_CHANGED': 0, 'USAGE_RULES_CHANGED': 1}
+        severity_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
+        doc_changes.sort(key=lambda x: (type_order.get(x.get('type'), 9), 
+                                         severity_order.get(x.get('severity', 'LOW'), 3)))
+        
+        for diff in doc_changes:
+            change_type = 'Rulebook' if diff.get('type') == 'RULEBOOK_CHANGED' else 'Usage Rules'
+            
+            ws.append([
+                diff.get('severity', ''),
+                change_type,
+                diff.get('element', ''),
+                diff.get('path', ''),
+                diff.get('schema1_value', ''),
+                diff.get('schema2_value', ''),
+                diff.get('impact', '')
+            ])
+            
+            # Color code by type
+            row_num = ws.max_row
+            if change_type == 'Rulebook':
+                fill_color = 'E8F5E9'  # Light green
+            else:
+                fill_color = 'FFF3E0'  # Light orange
+            
+            for cell in ws[row_num]:
+                cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
+                cell.alignment = Alignment(wrap_text=True, vertical='top')
+        
+        # Column widths
+        ws.column_dimensions['A'].width = 10
+        ws.column_dimensions['B'].width = 15
+        ws.column_dimensions['C'].width = 20
+        ws.column_dimensions['D'].width = 50
+        ws.column_dimensions['E'].width = 50
+        ws.column_dimensions['F'].width = 50
+        ws.column_dimensions['G'].width = 50
+        
+        ws.freeze_panes = 'A2'
+        if ws.max_row > 1:
+            ws.auto_filter.ref = f"A1:G{ws.max_row}"
+    
+    def _create_enumeration_changes_sheet(self):
+        """Create enumeration changes sheet"""
+        ws = self.wb.create_sheet("Enumeration Changes")
+        
+        headers = ['Severity', 'Element', 'Path', 
+                   f'{self.comparator.name1} Values', 
+                   f'{self.comparator.name2} Values',
+                   'Added Values', 'Removed Values', 'Impact']
+        ws.append(headers)
+        
+        # Style headers
+        header_fill = PatternFill(start_color='FF6F00', end_color='FF6F00', fill_type='solid')  # Orange
+        for cell in ws[1]:
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        
+        # Filter for enumeration changes
+        enum_changes = [d for d in self.comparator.differences 
+                        if d.get('type') == 'ENUMERATION_CHANGED']
+        
+        for diff in enum_changes:
+            val1 = diff.get('schema1_value', '') or ''
+            val2 = diff.get('schema2_value', '') or ''
+            
+            enums1 = set(val1.split(', ')) if val1 and val1 != 'None' else set()
+            enums2 = set(val2.split(', ')) if val2 and val2 != 'None' else set()
+            
+            added = enums2 - enums1
+            removed = enums1 - enums2
+            
+            ws.append([
+                diff.get('severity', ''),
+                diff.get('element', ''),
+                diff.get('path', ''),
+                val1,
+                val2,
+                ', '.join(sorted(added)) if added else 'None',
+                ', '.join(sorted(removed)) if removed else 'None',
+                diff.get('impact', '')
+            ])
+            
+            # Color code by severity
+            row_num = ws.max_row
+            severity = diff.get('severity', 'LOW')
+            if severity == 'HIGH':
+                fill_color = 'FFCDD2'  # Light red
+            elif severity == 'MEDIUM':
+                fill_color = 'FFF9C4'  # Light yellow
+            else:
+                fill_color = 'C8E6C9'  # Light green
+            
+            for cell in ws[row_num]:
+                cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
+                cell.alignment = Alignment(wrap_text=True, vertical='top')
+        
+        # Column widths
+        ws.column_dimensions['A'].width = 10
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 45
+        ws.column_dimensions['D'].width = 30
+        ws.column_dimensions['E'].width = 30
+        ws.column_dimensions['F'].width = 25
+        ws.column_dimensions['G'].width = 25
+        ws.column_dimensions['H'].width = 45
+        
+        ws.freeze_panes = 'A2'
+        if ws.max_row > 1:
+            ws.auto_filter.ref = f"A1:H{ws.max_row}"
+    
     def _calculate_statistics(self):
         """Calculate statistics"""
         stats = {
@@ -954,6 +1418,12 @@ class ComparisonReportGenerator:
             'Type Changes': len([d for d in self.comparator.differences if d['type'] == 'TYPE_CHANGED']),
             'Cardinality Changes': len([d for d in self.comparator.differences if d['type'] == 'CARDINALITY_CHANGED']),
             'Restriction Changes': len([d for d in self.comparator.differences if d['type'] == 'RESTRICTION_CHANGED']),
+            'Field Class Changes': len([d for d in self.comparator.differences if d['type'] == 'FIELD_CLASS_CHANGED']),
+            'Enumeration Changes': len([d for d in self.comparator.differences if d['type'] == 'ENUMERATION_CHANGED']),
+            'Rulebook Changes': len([d for d in self.comparator.differences if d['type'] == 'RULEBOOK_CHANGED']),
+            'Usage Rule Changes': len([d for d in self.comparator.differences if d['type'] == 'USAGE_RULES_CHANGED']),
+            'Fixed Value Changes': len([d for d in self.comparator.differences if d['type'] == 'FIXED_VALUE_CHANGED']),
+            'Default Value Changes': len([d for d in self.comparator.differences if d['type'] == 'DEFAULT_VALUE_CHANGED']),
             'Order Changes': len([d for d in self.comparator.differences if d['type'] == 'ORDER_CHANGED']),
         }
         return stats
@@ -1113,9 +1583,14 @@ class WordDocumentGenerator:
         """Calculate statistics"""
         return {
             'Total Differences': len(self.comparator.differences),
+            'Fields Added': len([d for d in self.comparator.differences if d['type'] == 'ADDED']),
             'Fields Removed': len([d for d in self.comparator.differences if d['type'] == 'REMOVED']),
             'Type Changes': len([d for d in self.comparator.differences if d['type'] == 'TYPE_CHANGED']),
             'Cardinality Changes': len([d for d in self.comparator.differences if d['type'] == 'CARDINALITY_CHANGED']),
+            'Field Class Changes': len([d for d in self.comparator.differences if d['type'] == 'FIELD_CLASS_CHANGED']),
+            'Enumeration Changes': len([d for d in self.comparator.differences if d['type'] == 'ENUMERATION_CHANGED']),
+            'Rulebook Changes': len([d for d in self.comparator.differences if d['type'] == 'RULEBOOK_CHANGED']),
+            'Usage Rule Changes': len([d for d in self.comparator.differences if d['type'] == 'USAGE_RULES_CHANGED']),
         }
 
 
