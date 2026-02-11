@@ -26,6 +26,7 @@ Then open: **http://localhost:5000**
 | **Comprehensive Analysis** | Extract ALL metadata including Yellow/White field classifications from XSD annotations | Excel (.xlsx) |
 | **Schema Documentation** | Generate detailed documentation of schema structure | Excel (.xlsx) |
 | **Schema Comparison** | Compare 2 schemas with detailed difference reporting | Excel + Word + HTML |
+| **Multi-Schema Comparison** | Compare 3+ schemas with pairwise analysis and stakeholder reports | Multiple Excel + Word + HTML |
 | **Test Data Generator** | Generate valid XML test files from schema | ZIP of XML files |
 
 ---
@@ -45,7 +46,8 @@ iso_toolkit/
 ├── tools/
 │   ├── schema_analyzer.py     # Comprehensive XSD analysis
 │   ├── schema_documenter.py   # Schema documentation generator
-│   ├── schema_comparator.py   # Schema comparison tool
+│   ├── schema_comparator.py   # Schema comparison tool (2 files)
+│   ├── multi_comparator.py    # Multi-schema comparison (3+ files)
 │   ├── xml_generator.py       # Test XML file generator
 │   ├── html_report_generator.py # Interactive HTML reports
 │   └── code_set_loader.py     # ISO 20022 code set loader

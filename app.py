@@ -281,6 +281,40 @@ def execute_tool(tool, file_paths, output_base, options):
             else:
                 return {'success': False, 'error': 'Comparison failed'}
         
+        elif tool == 'multi_compare':
+            if len(file_paths) < 2:
+                return {'success': False, 'error': 'Need at least 2 files'}
+            
+            script = os.path.join(tools_dir, 'multi_comparator.py')
+            output_base_path = os.path.join(output_dir, output_base)
+            
+            cmd = [sys.executable, script] + file_paths + ['-o', output_base_path]
+            
+            if options.get('names'):
+                names = [n.strip() for n in options['names'].split(',') if n.strip()]
+                if names:
+                    cmd.extend(['-n'] + names)
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout * 2)
+            
+            if result.returncode == 0:
+                generated_files = []
+                for f in os.listdir(output_dir):
+                    if f.startswith(output_base):
+                        generated_files.append(f)
+                
+                if generated_files:
+                    return {
+                        'success': True,
+                        'message': f'Multi-comparison complete! Generated {len(generated_files)} files',
+                        'files': sorted(generated_files)
+                    }
+                else:
+                    return {'success': False, 'error': 'No output files generated'}
+            else:
+                error_msg = result.stderr or result.stdout or 'Unknown error'
+                return {'success': False, 'error': f'Multi-comparison failed: {error_msg[:200]}'}
+        
         elif tool == 'test_data':
             script = os.path.join(tools_dir, 'xml_generator.py')
             num_files = int(options.get('num_files', 10))
