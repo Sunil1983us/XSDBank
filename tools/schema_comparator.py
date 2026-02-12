@@ -521,9 +521,15 @@ class XSDComparator:
         return self.differences
     
     def _compare_elements(self, elem1, elem2, path):
-        """Compare two elements"""
+        """Compare two elements - only report ORDER_CHANGED if there are other changes"""
+        
+        # Track if we have any substantive changes (not just order)
+        has_substantive_change = False
+        has_order_change = elem1['sequence'] != elem2['sequence']
+        
         # Type change
         if elem1['type'] != elem2['type']:
+            has_substantive_change = True
             # Compare type restrictions
             restriction_changes = self._compare_type_restrictions(elem1['type'], elem2['type'])
             restriction_details = '; '.join(restriction_changes) if restriction_changes else ''
@@ -553,6 +559,7 @@ class XSDComparator:
         
         # Cardinality change
         if elem1['min_occurs'] != elem2['min_occurs']:
+            has_substantive_change = True
             severity = 'HIGH' if (elem1['min_occurs'] == '0' and elem2['min_occurs'] != '0') else 'MEDIUM'
             self.differences.append({
                 'type': 'CARDINALITY_CHANGED',
@@ -573,6 +580,7 @@ class XSDComparator:
             })
         
         if elem1['max_occurs'] != elem2['max_occurs']:
+            has_substantive_change = True
             self.differences.append({
                 'type': 'CARDINALITY_CHANGED',
                 'severity': 'MEDIUM',
@@ -593,6 +601,7 @@ class XSDComparator:
         
         # Restrictions change
         if elem1['restrictions'] != elem2['restrictions']:
+            has_substantive_change = True
             self.differences.append({
                 'type': 'RESTRICTION_CHANGED',
                 'severity': 'HIGH',
@@ -611,31 +620,12 @@ class XSDComparator:
                 'sequence2': elem2['sequence']
             })
         
-        # Sequence change
-        if elem1['sequence'] != elem2['sequence']:
-            self.differences.append({
-                'type': 'ORDER_CHANGED',
-                'severity': 'LOW',
-                'path': path,
-                'element': elem1['name'],
-                'schema1_value': f"Position {elem1['sequence']}",
-                'schema2_value': f"Position {elem2['sequence']}",
-                'schema1_type': elem1['type'],
-                'schema2_type': elem2['type'],
-                'schema1_min': elem1['min_occurs'],
-                'schema2_min': elem2['min_occurs'],
-                'schema1_max': elem1['max_occurs'],
-                'schema2_max': elem2['max_occurs'],
-                'impact': "Element position changed in message structure.",
-                'sequence1': elem1['sequence'],
-                'sequence2': elem2['sequence']
-            })
-        
         # Yellow/White Field Classification change
         field_class1 = elem1.get('field_class', '⚫ NA (Not in XSD)')
         field_class2 = elem2.get('field_class', '⚫ NA (Not in XSD)')
         
         if field_class1 != field_class2:
+            has_substantive_change = True
             # Determine severity based on change type
             if 'Yellow' in field_class1 and 'White' in field_class2:
                 severity = 'HIGH'
@@ -681,6 +671,7 @@ class XSDComparator:
         fixed1 = elem1.get('fixed', '')
         fixed2 = elem2.get('fixed', '')
         if fixed1 != fixed2:
+            has_substantive_change = True
             self.differences.append({
                 'type': 'FIXED_VALUE_CHANGED',
                 'severity': 'HIGH',
@@ -703,6 +694,7 @@ class XSDComparator:
         default1 = elem1.get('default', '')
         default2 = elem2.get('default', '')
         if default1 != default2:
+            has_substantive_change = True
             self.differences.append({
                 'type': 'DEFAULT_VALUE_CHANGED',
                 'severity': 'MEDIUM',
@@ -725,6 +717,7 @@ class XSDComparator:
         rulebook1 = elem1.get('rulebook', '')
         rulebook2 = elem2.get('rulebook', '')
         if rulebook1 != rulebook2:
+            has_substantive_change = True
             if rulebook1 and rulebook2:
                 severity = 'MEDIUM'
                 impact = f"Rulebook note changed. Review business requirements."
@@ -757,6 +750,7 @@ class XSDComparator:
         usage1 = elem1.get('usage_rules', '')
         usage2 = elem2.get('usage_rules', '')
         if usage1 != usage2:
+            has_substantive_change = True
             if usage1 and usage2:
                 severity = 'MEDIUM'
                 impact = f"Usage rules changed. Review implementation requirements."
@@ -789,6 +783,7 @@ class XSDComparator:
         enums1 = elem1.get('enumerations', [])
         enums2 = elem2.get('enumerations', [])
         if enums1 != enums2:
+            has_substantive_change = True
             added_enums = set(enums2) - set(enums1)
             removed_enums = set(enums1) - set(enums2)
             
@@ -819,6 +814,10 @@ class XSDComparator:
                 'sequence1': elem1['sequence'],
                 'sequence2': elem2['sequence']
             })
+        
+        # Only report ORDER_CHANGED if there are other substantive changes
+        # (Order changes alone are just noise - they're a side effect of added/removed fields)
+        # Note: We don't add ORDER_CHANGED to has_substantive_change since it's not substantive itself
 
 
 class ComparisonReportGenerator:
@@ -1424,7 +1423,6 @@ class ComparisonReportGenerator:
             'Usage Rule Changes': len([d for d in self.comparator.differences if d['type'] == 'USAGE_RULES_CHANGED']),
             'Fixed Value Changes': len([d for d in self.comparator.differences if d['type'] == 'FIXED_VALUE_CHANGED']),
             'Default Value Changes': len([d for d in self.comparator.differences if d['type'] == 'DEFAULT_VALUE_CHANGED']),
-            'Order Changes': len([d for d in self.comparator.differences if d['type'] == 'ORDER_CHANGED']),
         }
         return stats
     

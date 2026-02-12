@@ -491,16 +491,17 @@ class InteractiveHTMLGenerator:
             'TYPE_CHANGED': '🔄 Type Changed',
             'CARDINALITY_CHANGED': '🔢 Cardinality Changed',
             'RESTRICTION_CHANGED': '⚠️ Restriction Changed',
-            'ORDER_CHANGED': '↕️ Order Changed',
+            'FIELD_CLASS_CHANGED': '🟡 Field Classification Changed',
+            'ENUMERATION_CHANGED': '📋 Enumeration Changed',
+            'RULEBOOK_CHANGED': '📖 Rulebook Changed',
+            'USAGE_RULES_CHANGED': '📝 Usage Rules Changed',
+            'FIXED_VALUE_CHANGED': '🔒 Fixed Value Changed',
+            'DEFAULT_VALUE_CHANGED': '⚙️ Default Value Changed',
             'DOCUMENTATION_CHANGED': '📝 Documentation Changed',
             'NAMESPACE_CHANGED': '🌐 Namespace Changed',
-            'DEFAULT_CHANGED': '⚙️ Default Changed',
-            'FIXED_CHANGED': '🔒 Fixed Value Changed',
-            'ENUMERATION_CHANGED': '📋 Enumeration Changed',
             'PATTERN_CHANGED': '🎯 Pattern Changed',
             'LENGTH_CHANGED': '📏 Length Changed',
             'RANGE_CHANGED': '📊 Range Changed',
-            'WHITESPACE_CHANGED': '␣ Whitespace Changed',
         }
         
         # Add XML examples to differences

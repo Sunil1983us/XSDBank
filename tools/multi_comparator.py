@@ -67,7 +67,7 @@ class MultiSchemaComparator:
         print(f"   ✅ Found {len(self.all_fields)} unique fields across all schemas")
     
     def build_comparison_matrix(self):
-        """Build field-by-field comparison matrix"""
+        """Build field-by-field comparison matrix with full metadata"""
         print("\n⏳ Building comparison matrix...")
         
         for field_path in sorted(self.all_fields):
@@ -81,11 +81,16 @@ class MultiSchemaComparator:
                         'type': elem.get('type', ''),
                         'min_occurs': elem.get('min_occurs', ''),
                         'max_occurs': elem.get('max_occurs', ''),
-                        'restrictions': elem.get('restrictions', '')
+                        'restrictions': elem.get('restrictions', ''),
+                        'field_class': elem.get('field_class', '⚫ NA (Not in XSD)'),
+                        'rulebook': elem.get('rulebook', ''),
+                        'usage_rules': elem.get('usage_rules', ''),
+                        'enumerations': elem.get('enumerations', [])
                     }
                 else:
                     self.comparison_matrix[field_path][schema['name']] = {
-                        'present': False
+                        'present': False,
+                        'field_class': ''
                     }
         
         print(f"   ✅ Matrix built: {len(self.comparison_matrix)} fields")
@@ -184,74 +189,293 @@ class EnhancedReportGenerator:
             print(f"   ⚠️  Error generating report: {e}")
     
     def _generate_master_matrix(self):
-        """Generate master comparison matrix"""
+        """Generate comprehensive master comparison matrix with ALL differences"""
         filename = f"{self.output_base}_MASTER_MATRIX.xlsx"
         wb = Workbook()
         
-        # Matrix sheet
-        ws = wb.active
-        ws.title = "Comparison Matrix"
+        # Build a lookup of all differences by path for quick access
+        differences_by_path = defaultdict(list)
+        for comparison in self.multi_comparator.pairwise_comparisons:
+            comp_name = f"{comparison['schema1']} → {comparison['schema2']}"
+            for diff in comparison['differences']:
+                differences_by_path[diff['path']].append({
+                    'comparison': comp_name,
+                    'type': diff['type'],
+                    'severity': diff.get('severity', 'LOW'),
+                    'schema1_value': diff.get('schema1_value', ''),
+                    'schema2_value': diff.get('schema2_value', ''),
+                    'impact': diff.get('impact', '')
+                })
         
-        # Headers
-        headers = ['Field Path', 'Element'] + [s['name'] for s in self.multi_comparator.schemas] + ['Status']
+        # ===== SHEET 1: Full Comparison Matrix =====
+        ws = wb.active
+        ws.title = "Full Comparison"
+        
+        # Headers with all details per schema
+        headers = ['Field Path', 'Element']
+        for schema in self.multi_comparator.schemas:
+            headers.extend([
+                f"{schema['name']} Present",
+                f"{schema['name']} Type",
+                f"{schema['name']} Min",
+                f"{schema['name']} Max",
+                f"{schema['name']} Class"
+            ])
+        headers.extend(['Change Types', 'Severity', 'Change Summary'])
         ws.append(headers)
         
         # Style headers
+        header_fill = PatternFill(start_color='1F4E78', end_color='1F4E78', fill_type='solid')
         for cell in ws[1]:
-            cell.font = Font(bold=True, color='FFFFFF')
-            cell.fill = PatternFill(start_color='1F4E78', end_color='1F4E78', fill_type='solid')
+            cell.font = Font(bold=True, color='FFFFFF', size=9)
+            cell.fill = header_fill
             cell.alignment = Alignment(horizontal='center', wrap_text=True)
         
-        # Data
-        for field_path, schema_data in self.multi_comparator.comparison_matrix.items():
+        # Data rows
+        for field_path in sorted(self.multi_comparator.comparison_matrix.keys()):
+            schema_data = self.multi_comparator.comparison_matrix[field_path]
             element_name = field_path.split('/')[-1]
             row = [field_path, element_name]
             
-            present_count = 0
             for schema in self.multi_comparator.schemas:
-                schema_name = schema['name']
-                if schema_data[schema_name]['present']:
-                    cell_value = f"✓ {schema_data[schema_name].get('type', '')[:25]}"
-                    present_count += 1
+                data = schema_data[schema['name']]
+                if data['present']:
+                    row.extend([
+                        '✓',
+                        data.get('type', '')[:35],
+                        data.get('min_occurs', ''),
+                        data.get('max_occurs', ''),
+                        data.get('field_class', '')[:20] if data.get('field_class') else ''
+                    ])
                 else:
-                    cell_value = "✗ Missing"
-                row.append(cell_value)
+                    row.extend(['✗', '', '', '', ''])
             
-            # Status column
-            total_schemas = len(self.multi_comparator.schemas)
-            if present_count == total_schemas:
-                status = "✅ All"
-            elif present_count == 0:
-                status = "❌ None"
+            # Get differences for this path
+            diffs = differences_by_path.get(field_path, [])
+            if diffs:
+                change_types = list(set(d['type'] for d in diffs))
+                severities = list(set(d['severity'] for d in diffs))
+                max_severity = 'HIGH' if 'HIGH' in severities else ('MEDIUM' if 'MEDIUM' in severities else 'LOW')
+                
+                # Build change summary
+                summaries = []
+                for d in diffs[:3]:  # Limit to 3 changes in summary
+                    summaries.append(f"{d['type']}: {d['schema1_value'][:20] if d['schema1_value'] else 'N/A'} → {d['schema2_value'][:20] if d['schema2_value'] else 'N/A'}")
+                if len(diffs) > 3:
+                    summaries.append(f"...+{len(diffs)-3} more")
+                
+                row.extend([
+                    ', '.join(change_types),
+                    max_severity,
+                    ' | '.join(summaries)
+                ])
             else:
-                status = f"⚠️ {present_count}/{total_schemas}"
-            row.append(status)
+                row.extend(['No Change', '', ''])
             
             ws.append(row)
             
-            # Highlight rows with differences
-            if present_count < total_schemas and present_count > 0:
+            # Color coding based on severity
+            if diffs:
+                max_sev = row[-2]
+                if max_sev == 'HIGH':
+                    fill_color = 'FFCDD2'  # Light red
+                elif max_sev == 'MEDIUM':
+                    fill_color = 'FFF9C4'  # Light yellow
+                else:
+                    fill_color = 'E8F5E9'  # Light green
                 for cell in ws[ws.max_row]:
-                    cell.fill = PatternFill(start_color='FFF3CD', end_color='FFF3CD', fill_type='solid')
+                    cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type='solid')
         
         # Column widths
-        ws.column_dimensions['A'].width = 50
-        ws.column_dimensions['B'].width = 25
-        for col_idx in range(3, len(headers) + 1):
-            ws.column_dimensions[get_column_letter(col_idx)].width = 30
+        ws.column_dimensions['A'].width = 45
+        ws.column_dimensions['B'].width = 18
+        col_idx = 3
+        for _ in self.multi_comparator.schemas:
+            ws.column_dimensions[get_column_letter(col_idx)].width = 8      # Present
+            ws.column_dimensions[get_column_letter(col_idx + 1)].width = 28  # Type
+            ws.column_dimensions[get_column_letter(col_idx + 2)].width = 6   # Min
+            ws.column_dimensions[get_column_letter(col_idx + 3)].width = 6   # Max
+            ws.column_dimensions[get_column_letter(col_idx + 4)].width = 18  # Class
+            col_idx += 5
+        ws.column_dimensions[get_column_letter(col_idx)].width = 25      # Change Types
+        ws.column_dimensions[get_column_letter(col_idx + 1)].width = 10  # Severity
+        ws.column_dimensions[get_column_letter(col_idx + 2)].width = 50  # Change Summary
         
         ws.freeze_panes = 'C2'
         ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{ws.max_row}"
         
-        # Summary sheet
+        # ===== SHEET 2: All Changes Detail =====
+        ws_changes = wb.create_sheet("All Changes")
+        
+        change_headers = ['Field Path', 'Element', 'Comparison', 'Change Type', 'Severity',
+                          'Old Value', 'New Value', 'Impact']
+        ws_changes.append(change_headers)
+        
+        for cell in ws_changes[1]:
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='C62828', end_color='C62828', fill_type='solid')
+        
+        # Add all differences
+        for field_path, diffs in sorted(differences_by_path.items()):
+            element_name = field_path.split('/')[-1]
+            for diff in diffs:
+                ws_changes.append([
+                    field_path,
+                    element_name,
+                    diff['comparison'],
+                    diff['type'],
+                    diff['severity'],
+                    str(diff['schema1_value'])[:50] if diff['schema1_value'] else '',
+                    str(diff['schema2_value'])[:50] if diff['schema2_value'] else '',
+                    diff['impact'][:80] if diff['impact'] else ''
+                ])
+                
+                # Color by severity
+                sev = diff['severity']
+                if sev == 'HIGH':
+                    fill = PatternFill(start_color='FFCDD2', end_color='FFCDD2', fill_type='solid')
+                elif sev == 'MEDIUM':
+                    fill = PatternFill(start_color='FFF9C4', end_color='FFF9C4', fill_type='solid')
+                else:
+                    fill = PatternFill(start_color='E8F5E9', end_color='E8F5E9', fill_type='solid')
+                for cell in ws_changes[ws_changes.max_row]:
+                    cell.fill = fill
+        
+        ws_changes.column_dimensions['A'].width = 45
+        ws_changes.column_dimensions['B'].width = 18
+        ws_changes.column_dimensions['C'].width = 30
+        ws_changes.column_dimensions['D'].width = 22
+        ws_changes.column_dimensions['E'].width = 10
+        ws_changes.column_dimensions['F'].width = 30
+        ws_changes.column_dimensions['G'].width = 30
+        ws_changes.column_dimensions['H'].width = 50
+        
+        ws_changes.freeze_panes = 'A2'
+        if ws_changes.max_row > 1:
+            ws_changes.auto_filter.ref = f"A1:H{ws_changes.max_row}"
+        
+        # ===== SHEET 3: Changes by Type =====
+        ws_by_type = wb.create_sheet("Changes by Type")
+        
+        # Group changes by type
+        changes_by_type = defaultdict(list)
+        for field_path, diffs in differences_by_path.items():
+            for diff in diffs:
+                changes_by_type[diff['type']].append({
+                    'path': field_path,
+                    'element': field_path.split('/')[-1],
+                    **diff
+                })
+        
+        type_headers = ['Change Type', 'Count', 'HIGH', 'MEDIUM', 'LOW', 'Sample Fields']
+        ws_by_type.append(type_headers)
+        
+        for cell in ws_by_type[1]:
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='2E7D32', end_color='2E7D32', fill_type='solid')
+        
+        for change_type in sorted(changes_by_type.keys()):
+            items = changes_by_type[change_type]
+            high = len([i for i in items if i['severity'] == 'HIGH'])
+            med = len([i for i in items if i['severity'] == 'MEDIUM'])
+            low = len([i for i in items if i['severity'] == 'LOW'])
+            samples = ', '.join([i['element'] for i in items[:5]])
+            if len(items) > 5:
+                samples += f' (+{len(items)-5} more)'
+            
+            ws_by_type.append([change_type, len(items), high, med, low, samples])
+        
+        ws_by_type.column_dimensions['A'].width = 25
+        ws_by_type.column_dimensions['B'].width = 10
+        ws_by_type.column_dimensions['C'].width = 8
+        ws_by_type.column_dimensions['D'].width = 10
+        ws_by_type.column_dimensions['E'].width = 8
+        ws_by_type.column_dimensions['F'].width = 60
+        
+        # ===== SHEET 4: Field Classifications =====
+        ws_class = wb.create_sheet("Field Classifications")
+        
+        headers_class = ['Field Path', 'Element'] + [s['name'] for s in self.multi_comparator.schemas] + ['Classification Changed', 'Evolution']
+        ws_class.append(headers_class)
+        
+        for cell in ws_class[1]:
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='7030A0', end_color='7030A0', fill_type='solid')
+        
+        for field_path, schema_data in self.multi_comparator.comparison_matrix.items():
+            has_classification = False
+            classes = []
+            for schema in self.multi_comparator.schemas:
+                fc = schema_data[schema['name']].get('field_class', '')
+                if fc and ('Yellow' in fc or 'White' in fc):
+                    has_classification = True
+                classes.append(fc if fc else 'N/A')
+            
+            if has_classification:
+                element_name = field_path.split('/')[-1]
+                unique = list(dict.fromkeys([c for c in classes if c and c != 'N/A']))
+                
+                if len(unique) > 1:
+                    class_changed = '⚠️ YES'
+                    evolution = " → ".join([c.split()[0] if c and c != 'N/A' else '?' for c in classes])
+                else:
+                    class_changed = 'No'
+                    evolution = 'Stable'
+                
+                row = [field_path, element_name] + classes + [class_changed, evolution]
+                ws_class.append(row)
+                
+                if class_changed == '⚠️ YES':
+                    for cell in ws_class[ws_class.max_row]:
+                        cell.fill = PatternFill(start_color='FCE4D6', end_color='FCE4D6', fill_type='solid')
+        
+        ws_class.column_dimensions['A'].width = 45
+        ws_class.column_dimensions['B'].width = 18
+        for i in range(3, len(headers_class) + 1):
+            ws_class.column_dimensions[get_column_letter(i)].width = 25
+        
+        ws_class.freeze_panes = 'C2'
+        if ws_class.max_row > 1:
+            ws_class.auto_filter.ref = f"A1:{get_column_letter(len(headers_class))}{ws_class.max_row}"
+        
+        # ===== SHEET 5: Summary =====
         ws_summary = wb.create_sheet("Summary")
-        ws_summary.append(['Metric', 'Value'])
+        
+        ws_summary.append(['MULTI-SCHEMA COMPARISON SUMMARY', ''])
+        ws_summary['A1'].font = Font(bold=True, size=14)
+        ws_summary.append([])
+        
+        ws_summary.append(['General Statistics', ''])
+        ws_summary['A3'].font = Font(bold=True)
         ws_summary.append(['Total Unique Fields', len(self.multi_comparator.comparison_matrix)])
         ws_summary.append(['Schemas Compared', len(self.multi_comparator.schemas)])
         ws_summary.append(['Pairwise Comparisons', len(self.multi_comparator.pairwise_comparisons)])
+        ws_summary.append(['Total Differences Found', sum(len(c['differences']) for c in self.multi_comparator.pairwise_comparisons)])
+        ws_summary.append([])
         
-        for cell in ws_summary[1]:
-            cell.font = Font(bold=True)
+        # Changes by type summary
+        ws_summary.append(['Changes by Type', ''])
+        ws_summary[f'A{ws_summary.max_row}'].font = Font(bold=True)
+        for change_type, items in sorted(changes_by_type.items(), key=lambda x: -len(x[1])):
+            ws_summary.append([f"  {change_type}", len(items)])
+        ws_summary.append([])
+        
+        # Classification statistics per schema
+        ws_summary.append(['Field Classifications by Schema', ''])
+        ws_summary[f'A{ws_summary.max_row}'].font = Font(bold=True)
+        for schema in self.multi_comparator.schemas:
+            yellow_count = 0
+            white_count = 0
+            for field_path, schema_data in self.multi_comparator.comparison_matrix.items():
+                fc = schema_data[schema['name']].get('field_class', '')
+                if 'Yellow' in fc:
+                    yellow_count += 1
+                elif 'White' in fc:
+                    white_count += 1
+            ws_summary.append([f"  {schema['name']}", f"🟡 {yellow_count} Yellow, ⚪ {white_count} White"])
+        
+        ws_summary.column_dimensions['A'].width = 40
+        ws_summary.column_dimensions['B'].width = 35
         
         wb.save(filename)
         self.generated_files.append(filename)
@@ -273,7 +497,7 @@ class EnhancedReportGenerator:
         self._generate_qa_checklist()
     
     def _generate_management_summary(self):
-        """Generate management summary"""
+        """Generate management summary with field classification insights"""
         filename = f"{self.output_base}_MANAGEMENT_SUMMARY.docx"
         doc = Document()
         
@@ -296,6 +520,39 @@ class EnhancedReportGenerator:
         doc.add_paragraph(f"• Total unique fields analyzed: {len(self.multi_comparator.all_fields)}")
         doc.add_paragraph(f"• Pairwise comparisons performed: {len(self.multi_comparator.pairwise_comparisons)}")
         
+        # Field Classification Statistics
+        doc.add_paragraph()
+        doc.add_heading('Field Classification Statistics (Yellow/White)', 1)
+        
+        for schema in self.multi_comparator.schemas:
+            yellow_count = 0
+            white_count = 0
+            for field_path, schema_data in self.multi_comparator.comparison_matrix.items():
+                fc = schema_data[schema['name']].get('field_class', '')
+                if 'Yellow' in fc:
+                    yellow_count += 1
+                elif 'White' in fc:
+                    white_count += 1
+            
+            doc.add_paragraph(f"{schema['name']}:", style='List Bullet')
+            doc.add_paragraph(f"  🟡 Yellow (Mandatory): {yellow_count} fields")
+            doc.add_paragraph(f"  ⚪ White (Optional): {white_count} fields")
+        
+        # Classification changes across versions
+        class_changes = 0
+        for field_path, schema_data in self.multi_comparator.comparison_matrix.items():
+            classes = set()
+            for schema in self.multi_comparator.schemas:
+                fc = schema_data[schema['name']].get('field_class', '')
+                if fc and 'NA' not in fc:
+                    classes.add(fc)
+            if len(classes) > 1:
+                class_changes += 1
+        
+        doc.add_paragraph()
+        doc.add_paragraph(f"⚠️ Fields with classification changes across versions: {class_changes}", 
+                         style='Intense Quote')
+        
         # Comparison summary
         doc.add_paragraph()
         doc.add_heading('Comparison Summary', 1)
@@ -304,9 +561,15 @@ class EnhancedReportGenerator:
         for comparison in self.multi_comparator.pairwise_comparisons:
             diff_count = len(comparison['differences'])
             total_differences += diff_count
+            
+            # Count by type
+            added = len([d for d in comparison['differences'] if d['type'] == 'ADDED'])
+            removed = len([d for d in comparison['differences'] if d['type'] == 'REMOVED'])
+            field_class = len([d for d in comparison['differences'] if d['type'] == 'FIELD_CLASS_CHANGED'])
+            
             doc.add_paragraph(
                 f"{comparison['schema1']} → {comparison['schema2']}: "
-                f"{diff_count} differences",
+                f"{diff_count} differences (Added: {added}, Removed: {removed}, Classification: {field_class})",
                 style='List Bullet'
             )
         
@@ -319,7 +582,7 @@ class EnhancedReportGenerator:
         print(f"   ✅ Management summary: {filename}")
     
     def _generate_business_impact(self):
-        """Generate business impact report"""
+        """Generate business impact report with field classification analysis"""
         filename = f"{self.output_base}_BUSINESS_IMPACT.docx"
         doc = Document()
         
@@ -338,23 +601,61 @@ class EnhancedReportGenerator:
             medium_severity = [d for d in differences if d.get('severity') == 'MEDIUM']
             low_severity = [d for d in differences if d.get('severity') == 'LOW']
             
+            # Field classification changes (important for business)
+            field_class_changes = [d for d in differences if d.get('type') == 'FIELD_CLASS_CHANGED']
+            yellow_to_white = [d for d in field_class_changes if 'Yellow' in str(d.get('schema1_value', '')) and 'White' in str(d.get('schema2_value', ''))]
+            white_to_yellow = [d for d in field_class_changes if 'White' in str(d.get('schema1_value', '')) and 'Yellow' in str(d.get('schema2_value', ''))]
+            new_yellow = [d for d in field_class_changes if 'NA' in str(d.get('schema1_value', '')) and 'Yellow' in str(d.get('schema2_value', ''))]
+            
             doc.add_paragraph(f"Total changes: {len(differences)}")
+            doc.add_paragraph(f"  • High: {len(high_severity)}, Medium: {len(medium_severity)}, Low: {len(low_severity)}")
+            
+            # Field Classification Impact Section
+            if field_class_changes:
+                doc.add_heading('Field Classification Impact', 2)
+                doc.add_paragraph(f"Found {len(field_class_changes)} classification changes:")
+                
+                if white_to_yellow:
+                    doc.add_paragraph(f"⚠️ UPGRADED to Yellow (Now Mandatory): {len(white_to_yellow)} fields", style='List Bullet')
+                    for diff in white_to_yellow[:10]:
+                        doc.add_paragraph(f"    • {diff['path']}")
+                
+                if yellow_to_white:
+                    doc.add_paragraph(f"ℹ️ DOWNGRADED to White (Now Optional): {len(yellow_to_white)} fields", style='List Bullet')
+                    for diff in yellow_to_white[:10]:
+                        doc.add_paragraph(f"    • {diff['path']}")
+                
+                if new_yellow:
+                    doc.add_paragraph(f"🆕 NEW Yellow Fields (New Mandatory): {len(new_yellow)} fields", style='List Bullet')
+                    for diff in new_yellow[:10]:
+                        doc.add_paragraph(f"    • {diff['path']}")
             
             if high_severity:
                 doc.add_heading('High Priority Changes', 2)
                 doc.add_paragraph(f"Found {len(high_severity)} critical changes requiring immediate attention:")
-                for diff in high_severity[:20]:  # Limit to 20
-                    doc.add_paragraph(f"• {diff['path']}: {diff['type']}", style='List Bullet')
-                if len(high_severity) > 20:
-                    doc.add_paragraph(f"... and {len(high_severity) - 20} more")
+                
+                # Group by type
+                by_type = defaultdict(list)
+                for diff in high_severity:
+                    by_type[diff['type']].append(diff)
+                
+                for diff_type, diffs in sorted(by_type.items()):
+                    doc.add_paragraph(f"{diff_type}: {len(diffs)} changes", style='List Bullet')
+                    for diff in diffs[:5]:
+                        doc.add_paragraph(f"    • {diff['path']}")
+                    if len(diffs) > 5:
+                        doc.add_paragraph(f"    ... and {len(diffs) - 5} more")
             
             if medium_severity:
                 doc.add_heading('Medium Priority Changes', 2)
                 doc.add_paragraph(f"Found {len(medium_severity)} changes requiring review:")
-                for diff in medium_severity[:15]:
-                    doc.add_paragraph(f"• {diff['path']}: {diff['type']}", style='List Bullet')
-                if len(medium_severity) > 15:
-                    doc.add_paragraph(f"... and {len(medium_severity) - 15} more")
+                
+                by_type = defaultdict(list)
+                for diff in medium_severity:
+                    by_type[diff['type']].append(diff)
+                
+                for diff_type, diffs in sorted(by_type.items()):
+                    doc.add_paragraph(f"{diff_type}: {len(diffs)} changes", style='List Bullet')
             
             if not high_severity and not medium_severity:
                 doc.add_paragraph("No high or medium priority changes found.")
