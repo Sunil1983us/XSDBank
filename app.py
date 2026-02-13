@@ -152,6 +152,7 @@ def load_config():
         # Security
         'SECRET_KEY': os.environ.get('TOOLKIT_SECRET_KEY', 'change-this-in-production-' + os.urandom(16).hex()),
         'MAX_CONTENT_LENGTH': int(os.environ.get('TOOLKIT_MAX_UPLOAD_MB', '100')) * 1024 * 1024,
+        'MAX_FILE_SIZE_MB': int(os.environ.get('TOOLKIT_MAX_FILE_SIZE_MB', '50')),
         
         # Folders
         'UPLOAD_FOLDER': os.environ.get('TOOLKIT_UPLOAD_FOLDER', 'static/uploads'),
@@ -162,9 +163,14 @@ def load_config():
         # Processing
         'TIMEOUT_SECONDS': int(os.environ.get('TOOLKIT_TIMEOUT', '300')),
         'CLEANUP_HOURS': int(os.environ.get('TOOLKIT_CLEANUP_HOURS', '24')),
+        'AUTO_CLEANUP_ENABLED': os.environ.get('TOOLKIT_AUTO_CLEANUP', 'True').lower() == 'true',
         
         # Allowed file extensions
         'ALLOWED_EXTENSIONS': {'xsd', 'xml', 'zip'},
+        
+        # Limits
+        'MAX_FILES_PER_UPLOAD': int(os.environ.get('TOOLKIT_MAX_FILES', '50')),
+        'MAX_BATCH_FILES': int(os.environ.get('TOOLKIT_MAX_BATCH', '500')),
     }
     
     # Load from config file if exists
@@ -256,70 +262,228 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
-    """Handle file uploads"""
+    """Handle file uploads with comprehensive validation"""
     try:
         if 'files[]' not in request.files:
             logger.warning("Upload attempted without files")
-            return jsonify({'error': 'No files uploaded'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'No files uploaded',
+                'error_code': 'NO_FILES',
+                'suggestion': 'Please select at least one file to upload'
+            }), 400
         
         files = request.files.getlist('files[]')
+        
+        # Check file count limit
+        if len(files) > CONFIG['MAX_FILES_PER_UPLOAD']:
+            logger.warning(f"Too many files: {len(files)} > {CONFIG['MAX_FILES_PER_UPLOAD']}")
+            return jsonify({
+                'success': False,
+                'error': f'Too many files. Maximum {CONFIG["MAX_FILES_PER_UPLOAD"]} files per upload.',
+                'error_code': 'TOO_MANY_FILES',
+                'suggestion': 'Upload files in smaller batches or use a ZIP file'
+            }), 400
+        
         uploaded_files = []
+        errors = []
+        max_size_bytes = CONFIG['MAX_FILE_SIZE_MB'] * 1024 * 1024
         
         for file in files:
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-                unique_filename = f"{timestamp}_{filename}"
-                filepath = os.path.join(CONFIG['UPLOAD_FOLDER'], unique_filename)
-                file.save(filepath)
-                uploaded_files.append(unique_filename)
-                logger.info(f"File uploaded: {unique_filename}")
+            if not file or not file.filename:
+                continue
+                
+            filename = file.filename
+            
+            # Check file extension
+            if not allowed_file(filename):
+                ext = filename.rsplit('.', 1)[-1] if '.' in filename else 'none'
+                errors.append({
+                    'file': filename,
+                    'error': f'Invalid file type: .{ext}',
+                    'suggestion': 'Only .xsd, .xml, and .zip files are allowed'
+                })
+                continue
+            
+            # Check file size (read content to check)
+            file.seek(0, 2)  # Seek to end
+            file_size = file.tell()
+            file.seek(0)  # Reset to beginning
+            
+            if file_size > max_size_bytes:
+                size_mb = file_size / (1024 * 1024)
+                errors.append({
+                    'file': filename,
+                    'error': f'File too large: {size_mb:.1f}MB (max: {CONFIG["MAX_FILE_SIZE_MB"]}MB)',
+                    'suggestion': 'Split large files or increase MAX_FILE_SIZE_MB in config'
+                })
+                continue
+            
+            if file_size == 0:
+                errors.append({
+                    'file': filename,
+                    'error': 'Empty file',
+                    'suggestion': 'Please upload a file with content'
+                })
+                continue
+            
+            # Save file
+            safe_filename = secure_filename(filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+            unique_filename = f"{timestamp}_{safe_filename}"
+            filepath = os.path.join(CONFIG['UPLOAD_FOLDER'], unique_filename)
+            
+            file.save(filepath)
+            uploaded_files.append(unique_filename)
+            logger.info(f"File uploaded: {unique_filename} ({file_size} bytes)")
+        
+        if not uploaded_files and errors:
+            return jsonify({
+                'success': False,
+                'error': 'All files failed validation',
+                'error_code': 'VALIDATION_FAILED',
+                'details': errors
+            }), 400
         
         if not uploaded_files:
             logger.warning("No valid files in upload")
-            return jsonify({'error': 'No valid files uploaded. Only .xsd and .xml files are allowed.'}), 400
-            
-        return jsonify({'success': True, 'files': uploaded_files})
+            return jsonify({
+                'success': False,
+                'error': 'No valid files uploaded',
+                'error_code': 'NO_VALID_FILES',
+                'suggestion': 'Only .xsd, .xml, and .zip files are allowed'
+            }), 400
+        
+        response = {
+            'success': True,
+            'files': uploaded_files,
+            'count': len(uploaded_files)
+        }
+        
+        if errors:
+            response['warnings'] = errors
+            response['message'] = f'{len(uploaded_files)} files uploaded, {len(errors)} skipped'
+        
+        return jsonify(response)
     
     except Exception as e:
-        logger.error(f"Upload error: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Upload error: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Upload failed due to server error',
+            'error_code': 'SERVER_ERROR',
+            'details': str(e) if CONFIG['DEBUG'] else 'Contact administrator'
+        }), 500
 
 @app.route('/run_tool', methods=['POST'])
 def run_tool():
-    """Execute analysis tool"""
+    """Execute analysis tool with comprehensive error handling"""
+    start_time = time.time()
+    
     try:
         data = request.json
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid request: No JSON data',
+                'error_code': 'INVALID_REQUEST'
+            }), 400
+        
         tool = data.get('tool')
         files = data.get('files', [])
         options = data.get('options', {})
         
-        if not tool or not files:
-            return jsonify({'error': 'Missing tool or files'}), 400
+        # Validate tool
+        valid_tools = ['comprehensive', 'document', 'compare', 'multi_compare', 'test_data', 
+                       'xml_validate', 'xml_diff', 'batch_validate', 'mapping_template', 'xml_transform']
         
-        file_paths = [os.path.join(CONFIG['UPLOAD_FOLDER'], f) for f in files]
+        if not tool:
+            return jsonify({
+                'success': False,
+                'error': 'No tool specified',
+                'error_code': 'MISSING_TOOL',
+                'suggestion': f'Valid tools: {", ".join(valid_tools)}'
+            }), 400
         
-        for fp in file_paths:
-            if not os.path.exists(fp):
-                logger.error(f"File not found: {fp}")
-                return jsonify({'error': 'File not found'}), 400
+        if tool not in valid_tools:
+            return jsonify({
+                'success': False,
+                'error': f'Unknown tool: {tool}',
+                'error_code': 'INVALID_TOOL',
+                'suggestion': f'Valid tools: {", ".join(valid_tools)}'
+            }), 400
+        
+        if not files:
+            return jsonify({
+                'success': False,
+                'error': 'No files specified',
+                'error_code': 'MISSING_FILES',
+                'suggestion': 'Upload files first, then run the tool'
+            }), 400
+        
+        # Validate file paths
+        file_paths = []
+        missing_files = []
+        
+        for f in files:
+            fp = os.path.join(CONFIG['UPLOAD_FOLDER'], f)
+            if os.path.exists(fp):
+                file_paths.append(fp)
+            else:
+                missing_files.append(f)
+        
+        if missing_files:
+            logger.error(f"Files not found: {missing_files}")
+            return jsonify({
+                'success': False,
+                'error': f'File(s) not found: {", ".join(missing_files)}',
+                'error_code': 'FILES_NOT_FOUND',
+                'suggestion': 'Files may have been cleaned up. Please re-upload.'
+            }), 400
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_base = f"output_{timestamp}"
         
-        logger.info(f"Running tool: {tool} on {len(files)} file(s)")
+        logger.info(f"Running tool: {tool} on {len(files)} file(s) with options: {options}")
         result = execute_tool(tool, file_paths, output_base, options)
         
+        # Add execution time
+        execution_time = time.time() - start_time
+        result['execution_time_seconds'] = round(execution_time, 2)
+        
         if result.get('success'):
-            logger.info(f"Tool {tool} completed successfully")
+            logger.info(f"Tool {tool} completed successfully in {execution_time:.2f}s")
         else:
             logger.warning(f"Tool {tool} failed: {result.get('error')}")
         
         return jsonify(result)
             
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parse error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Invalid JSON in request',
+            'error_code': 'JSON_ERROR'
+        }), 400
+        
+    except subprocess.TimeoutExpired:
+        logger.error(f"Tool execution timed out after {CONFIG['TIMEOUT_SECONDS']}s")
+        return jsonify({
+            'success': False,
+            'error': f'Tool execution timed out after {CONFIG["TIMEOUT_SECONDS"]} seconds',
+            'error_code': 'TIMEOUT',
+            'suggestion': 'Try with fewer/smaller files or increase TOOLKIT_TIMEOUT'
+        }), 504
+        
     except Exception as e:
-        logger.error(f"Tool execution error: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Tool execution error: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Tool execution failed',
+            'error_code': 'EXECUTION_ERROR',
+            'details': str(e) if CONFIG['DEBUG'] else 'Check server logs for details'
+        }), 500
 
 def execute_tool(tool, file_paths, output_base, options):
     """Execute the specified analysis tool"""
@@ -747,6 +911,10 @@ def status():
         upload_count = len(list(Path(CONFIG['UPLOAD_FOLDER']).glob('*')))
         output_count = len(list(Path(CONFIG['OUTPUT_FOLDER']).glob('*')))
         
+        # Calculate folder sizes
+        upload_size = sum(f.stat().st_size for f in Path(CONFIG['UPLOAD_FOLDER']).glob('*') if f.is_file())
+        output_size = sum(f.stat().st_size for f in Path(CONFIG['OUTPUT_FOLDER']).glob('*') if f.is_file())
+        
         return jsonify({
             'status': 'running',
             'timestamp': datetime.now().isoformat(),
@@ -755,23 +923,62 @@ def status():
                 'host': CONFIG['HOST'],
                 'port': CONFIG['PORT'],
                 'max_upload_mb': CONFIG['MAX_CONTENT_LENGTH'] // (1024 * 1024),
-                'timeout_seconds': CONFIG['TIMEOUT_SECONDS']
+                'max_file_size_mb': CONFIG['MAX_FILE_SIZE_MB'],
+                'max_files_per_upload': CONFIG['MAX_FILES_PER_UPLOAD'],
+                'timeout_seconds': CONFIG['TIMEOUT_SECONDS'],
+                'cleanup_hours': CONFIG['CLEANUP_HOURS'],
+                'auto_cleanup': CONFIG['AUTO_CLEANUP_ENABLED']
             },
             'files': {
                 'uploads': upload_count,
-                'outputs': output_count
-            }
+                'uploads_size_mb': round(upload_size / (1024 * 1024), 2),
+                'outputs': output_count,
+                'outputs_size_mb': round(output_size / (1024 * 1024), 2)
+            },
+            'tools_available': [
+                'comprehensive', 'document', 'compare', 'multi_compare', 
+                'test_data', 'xml_validate', 'xml_diff', 'batch_validate',
+                'mapping_template', 'xml_transform'
+            ]
         })
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/limits')
+def get_limits():
+    """Get system limits for frontend display"""
+    return jsonify({
+        'max_file_size_mb': CONFIG['MAX_FILE_SIZE_MB'],
+        'max_upload_total_mb': CONFIG['MAX_CONTENT_LENGTH'] // (1024 * 1024),
+        'max_files_per_upload': CONFIG['MAX_FILES_PER_UPLOAD'],
+        'max_batch_files': CONFIG['MAX_BATCH_FILES'],
+        'timeout_seconds': CONFIG['TIMEOUT_SECONDS'],
+        'allowed_extensions': list(CONFIG['ALLOWED_EXTENSIONS']),
+        'cleanup_hours': CONFIG['CLEANUP_HOURS']
+    })
 
 @app.route('/cleanup', methods=['POST'])
 def trigger_cleanup():
     """Manual cleanup trigger"""
     try:
+        before_uploads = len(list(Path(CONFIG['UPLOAD_FOLDER']).glob('*')))
+        before_outputs = len(list(Path(CONFIG['OUTPUT_FOLDER']).glob('*')))
+        
         cleanup_old_files()
-        return jsonify({'success': True, 'message': 'Cleanup completed'})
+        
+        after_uploads = len(list(Path(CONFIG['UPLOAD_FOLDER']).glob('*')))
+        after_outputs = len(list(Path(CONFIG['OUTPUT_FOLDER']).glob('*')))
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cleanup completed',
+            'cleaned': {
+                'uploads': before_uploads - after_uploads,
+                'outputs': before_outputs - after_outputs
+            }
+        })
     except Exception as e:
+        logger.error(f"Cleanup error: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================================

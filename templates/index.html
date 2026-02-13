@@ -7,26 +7,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --primary-light: #818cf8;
-            --secondary: #0ea5e9;
-            --accent: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --dark: #0f172a;
-            --dark-lighter: #1e293b;
-            --gray-900: #111827;
-            --gray-800: #1f2937;
-            --gray-700: #374151;
-            --gray-600: #4b5563;
-            --gray-500: #6b7280;
-            --gray-400: #9ca3af;
-            --gray-300: #d1d5db;
-            --gray-200: #e5e7eb;
-            --gray-100: #f3f4f6;
-            --gray-50: #f9fafb;
-            --white: #ffffff;
+            --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: #818cf8;
+            --secondary: #0ea5e9; --accent: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --dark: #0f172a; --dark-lighter: #1e293b;
+            --gray-900: #111827; --gray-800: #1f2937; --gray-700: #374151; --gray-600: #4b5563;
+            --gray-500: #6b7280; --gray-400: #9ca3af; --gray-300: #d1d5db; --gray-200: #e5e7eb;
+            --gray-100: #f3f4f6; --gray-50: #f9fafb; --white: #ffffff;
             --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --gradient-2: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
             --gradient-3: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
@@ -35,626 +21,210 @@
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
             --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-            --radius: 0.5rem;
-            --radius-lg: 0.75rem;
-            --radius-xl: 1rem;
+            --radius: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem; --radius-2xl: 1.5rem;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--gray-50);
-            color: var(--gray-900);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); color: var(--gray-900); line-height: 1.6; min-height: 100vh; }
 
         /* Sidebar */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 260px;
-            height: 100vh;
-            background: var(--dark);
-            color: var(--white);
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--dark-lighter);
-        }
-
-        .sidebar-logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            color: var(--white);
-            cursor: pointer;
-        }
-
-        .sidebar-logo-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--gradient-2);
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-
-        .sidebar-logo-text { font-weight: 700; font-size: 18px; }
+        .sidebar { position: fixed; left: 0; top: 0; width: 280px; height: 100vh; background: var(--dark); color: var(--white); z-index: 1000; display: flex; flex-direction: column; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--dark-lighter); }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--white); cursor: pointer; }
+        .sidebar-logo-icon { width: 44px; height: 44px; background: var(--gradient-2); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .sidebar-logo-text { font-weight: 700; font-size: 20px; }
         .sidebar-logo-subtitle { font-size: 11px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.5px; }
-
         .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 0; }
-
         .nav-section { margin-bottom: 8px; }
-        .nav-section-title {
-            padding: 12px 20px 8px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--gray-500);
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 20px;
-            color: var(--gray-300);
-            text-decoration: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-        }
-
+        .nav-section-title { padding: 12px 24px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-500); }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: var(--gray-300); text-decoration: none; cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent; }
         .nav-item:hover { background: var(--dark-lighter); color: var(--white); }
         .nav-item.active { background: var(--dark-lighter); color: var(--white); border-left-color: var(--primary); }
-        .nav-item-icon { width: 20px; text-align: center; font-size: 16px; }
+        .nav-item-icon { width: 24px; text-align: center; font-size: 18px; }
         .nav-item-text { font-size: 14px; font-weight: 500; }
-        .nav-item-badge {
-            margin-left: auto;
-            background: var(--primary);
-            color: var(--white);
-            font-size: 10px;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
+        .nav-item-badge { margin-left: auto; background: var(--primary); color: var(--white); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
         .nav-item-badge.soon { background: var(--gray-600); }
-
-        .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--dark-lighter); font-size: 12px; color: var(--gray-500); }
+        .sidebar-footer { padding: 16px 24px; border-top: 1px solid var(--dark-lighter); }
+        .sidebar-footer-text { font-size: 12px; color: var(--gray-500); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+        .sidebar-overlay.active { display: block; }
 
         /* Main Content */
-        .main-content { margin-left: 260px; min-height: 100vh; }
-
+        .main-content { margin-left: 280px; min-height: 100vh; }
         .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Hero Section */
-        .hero {
-            background: var(--gradient-2);
-            color: var(--white);
-            padding: 60px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-
-        .hero-content { position: relative; z-index: 1; max-width: 700px; }
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 20px;
-        }
-        .hero-title { font-size: 42px; font-weight: 700; line-height: 1.2; margin-bottom: 16px; }
-        .hero-subtitle { font-size: 18px; opacity: 0.9; margin-bottom: 24px; }
-
-        .hero-stats { display: flex; gap: 40px; margin-top: 32px; }
+        /* Hero */
+        .hero { background: var(--gradient-2); color: var(--white); padding: 80px 60px; position: relative; overflow: hidden; }
+        .hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); opacity: 0.5; }
+        .hero-content { position: relative; z-index: 1; max-width: 800px; }
+        .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 8px 16px; border-radius: 50px; font-size: 13px; font-weight: 500; margin-bottom: 24px; }
+        .hero-title { font-size: 48px; font-weight: 700; line-height: 1.2; margin-bottom: 20px; }
+        .hero-subtitle { font-size: 20px; opacity: 0.9; margin-bottom: 32px; max-width: 600px; }
+        .hero-stats { display: flex; gap: 48px; margin-top: 48px; }
         .hero-stat { text-align: center; }
-        .hero-stat-number { font-size: 32px; font-weight: 700; }
-        .hero-stat-label { font-size: 13px; opacity: 0.8; }
+        .hero-stat-number { font-size: 36px; font-weight: 700; }
+        .hero-stat-label { font-size: 14px; opacity: 0.8; }
 
-        /* Section */
-        .section { padding: 50px 60px; }
-        .section-header { margin-bottom: 32px; }
-        .section-title { font-size: 28px; font-weight: 700; color: var(--gray-900); margin-bottom: 8px; }
-        .section-subtitle { font-size: 16px; color: var(--gray-500); }
+        /* Features */
+        .features-section { padding: 80px 60px; background: var(--white); }
+        .section-header { text-align: center; margin-bottom: 48px; }
+        .section-title { font-size: 32px; font-weight: 700; color: var(--gray-900); margin-bottom: 12px; }
+        .section-subtitle { font-size: 18px; color: var(--gray-500); max-width: 600px; margin: 0 auto; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .feature-card { background: var(--gray-50); border-radius: var(--radius-xl); padding: 32px; transition: all 0.3s; border: 1px solid var(--gray-200); cursor: pointer; }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-xl); border-color: var(--primary-light); }
+        .feature-card.disabled { opacity: 0.6; cursor: not-allowed; }
+        .feature-card.disabled:hover { transform: none; box-shadow: none; border-color: var(--gray-200); }
+        .feature-icon { width: 56px; height: 56px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 20px; }
+        .feature-icon.xsd { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        .feature-icon.pdf { background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); }
+        .feature-icon.yaml { background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); }
+        .feature-icon.json { background: linear-gradient(135deg, #f59e0b 0%, #eab308 100%); }
+        .feature-title { font-size: 20px; font-weight: 600; margin-bottom: 12px; color: var(--gray-900); }
+        .feature-description { color: var(--gray-600); font-size: 15px; margin-bottom: 20px; }
+        .feature-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+        .feature-tool-tag { background: var(--white); border: 1px solid var(--gray-200); padding: 4px 12px; border-radius: 20px; font-size: 12px; color: var(--gray-600); }
 
-        /* Category Cards */
-        .category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
-
-        .category-card {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 28px;
-            border: 1px solid var(--gray-200);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .category-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
-            border-color: var(--primary-light);
-        }
-
-        .category-card.disabled { opacity: 0.6; cursor: not-allowed; }
-        .category-card.disabled:hover { transform: none; box-shadow: none; }
-
-        .category-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-            margin-bottom: 16px;
-        }
-
-        .category-icon.xsd { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
-        .category-icon.pdf { background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); }
-        .category-icon.yaml { background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%); }
-        .category-icon.json { background: linear-gradient(135deg, #f59e0b 0%, #eab308 100%); }
-
-        .category-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
-        .category-description { color: var(--gray-600); font-size: 14px; margin-bottom: 16px; }
-        .category-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-        .category-tag {
-            background: var(--gray-100);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            color: var(--gray-600);
-        }
-
-        /* Category Page Header */
-        .category-header {
-            background: var(--gradient-3);
-            color: var(--white);
-            padding: 40px 60px;
-        }
-
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            margin-bottom: 12px;
-            opacity: 0.8;
-        }
-        .breadcrumb a { color: var(--white); text-decoration: none; }
+        /* Category Header */
+        .category-header { background: var(--gradient-3); color: var(--white); padding: 48px 60px; }
+        .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 16px; opacity: 0.8; }
+        .breadcrumb a { color: var(--white); text-decoration: none; cursor: pointer; }
         .breadcrumb a:hover { text-decoration: underline; }
+        .category-title { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+        .category-subtitle { font-size: 18px; opacity: 0.9; max-width: 700px; }
 
-        .category-page-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
-        .category-page-subtitle { font-size: 16px; opacity: 0.9; }
-
-        /* Tool Cards Grid */
+        /* Tools Grid */
+        .tools-container { padding: 48px 60px; }
         .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
-
-        .tool-card {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 24px;
-            border: 1px solid var(--gray-200);
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-        }
-
-        .tool-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
-            border-color: var(--primary);
-        }
-
-        .tool-card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
-        .tool-card-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-lg);
-            background: var(--gradient-2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        .tool-card-title { font-size: 17px; font-weight: 600; color: var(--gray-900); }
-        .tool-card-badge {
-            display: inline-block;
-            background: var(--accent);
-            color: var(--white);
-            font-size: 10px;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: 8px;
-        }
-
-        .tool-card-description { color: var(--gray-600); font-size: 14px; margin-bottom: 16px; line-height: 1.5; }
-
-        .tool-card-features { margin-bottom: 16px; }
-        .tool-card-feature {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--gray-600);
-            margin-bottom: 6px;
-        }
-        .tool-card-feature::before { content: '✓'; color: var(--accent); font-weight: 600; }
-
-        .tool-card-input {
-            background: var(--gray-50);
-            padding: 10px 14px;
-            border-radius: var(--radius);
-            font-size: 13px;
-            color: var(--gray-500);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .tool-card-arrow {
-            position: absolute;
-            bottom: 24px;
-            right: 24px;
-            width: 36px;
-            height: 36px;
-            background: var(--primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-size: 14px;
-            opacity: 0;
-            transform: translateX(10px);
-            transition: all 0.3s;
-        }
-
+        .tool-card { background: var(--white); border-radius: var(--radius-xl); padding: 28px; border: 1px solid var(--gray-200); transition: all 0.3s; cursor: pointer; position: relative; }
+        .tool-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-xl); border-color: var(--primary); }
+        .tool-card-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+        .tool-card-icon { width: 52px; height: 52px; border-radius: var(--radius-lg); background: var(--gradient-2); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+        .tool-card-title { font-size: 18px; font-weight: 600; color: var(--gray-900); }
+        .tool-card-badge { display: inline-block; background: var(--accent); color: var(--white); font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; margin-left: 8px; }
+        .tool-card-description { color: var(--gray-600); font-size: 14px; margin-bottom: 16px; line-height: 1.6; }
+        .tool-card-features { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+        .tool-card-feature { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--accent); font-weight: 500; }
+        .tool-card-feature::before { content: '✓'; }
+        .tool-card-input { background: var(--gray-50); padding: 12px 16px; border-radius: var(--radius); font-size: 13px; color: var(--gray-500); display: flex; align-items: center; gap: 8px; }
+        .tool-card-arrow { position: absolute; bottom: 28px; right: 28px; width: 40px; height: 40px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 18px; opacity: 0; transform: translateX(10px); transition: all 0.3s; }
         .tool-card:hover .tool-card-arrow { opacity: 1; transform: translateX(0); }
 
         /* Tool Page */
-        .tool-page-header {
-            background: var(--white);
-            border-bottom: 1px solid var(--gray-200);
-            padding: 20px 60px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+        .tool-page-header { background: var(--white); border-bottom: 1px solid var(--gray-200); padding: 20px 60px; display: flex; align-items: center; gap: 24px; }
+        .tool-page-back { display: flex; align-items: center; gap: 8px; color: var(--gray-600); text-decoration: none; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius); transition: all 0.2s; cursor: pointer; background: var(--gray-100); }
+        .tool-page-back:hover { background: var(--gray-200); color: var(--gray-900); }
+        .tool-page-title-area { display: flex; align-items: center; gap: 16px; flex: 1; }
+        .tool-page-icon { width: 48px; height: 48px; border-radius: var(--radius-lg); background: var(--gradient-2); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .tool-page-title { font-size: 24px; font-weight: 700; color: var(--gray-900); }
+        .tool-page-content { padding: 40px 60px; max-width: 1000px; margin: 0 auto; }
 
-        .tool-page-back {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--gray-600);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: var(--radius);
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        .tool-page-back:hover { background: var(--gray-100); color: var(--gray-900); }
-
-        .tool-page-title-area { display: flex; align-items: center; gap: 14px; flex: 1; }
-        .tool-page-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-lg);
-            background: var(--gradient-2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-        .tool-page-title { font-size: 22px; font-weight: 700; color: var(--gray-900); }
-
-        .tool-page-content { padding: 40px 60px; max-width: 900px; margin: 0 auto; }
+        /* Guide Section */
+        .guide-section { background: var(--white); border-radius: var(--radius-xl); padding: 28px; border: 1px solid var(--gray-200); margin-bottom: 24px; }
+        .guide-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--gray-200); margin-bottom: 24px; }
+        .guide-tab { padding: 12px 20px; font-size: 14px; font-weight: 500; color: var(--gray-500); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+        .guide-tab:hover { color: var(--gray-700); }
+        .guide-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .guide-content { display: none; }
+        .guide-content.active { display: block; }
+        .guide-content h4 { font-size: 16px; font-weight: 600; color: var(--gray-900); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .guide-content p { color: var(--gray-600); font-size: 14px; line-height: 1.7; margin-bottom: 16px; }
+        .guide-content ul { list-style: none; margin-bottom: 16px; }
+        .guide-content li { color: var(--gray-600); font-size: 14px; padding: 8px 0; padding-left: 24px; position: relative; }
+        .guide-content li::before { content: '→'; position: absolute; left: 0; color: var(--primary); font-weight: 600; }
+        .guide-benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
+        .guide-benefit { background: var(--gray-50); padding: 16px; border-radius: var(--radius); border-left: 3px solid var(--accent); }
+        .guide-benefit-title { font-size: 14px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; }
+        .guide-benefit-text { font-size: 13px; color: var(--gray-500); }
+        .output-files { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+        .output-file { display: flex; align-items: center; gap: 8px; background: var(--gray-100); padding: 10px 16px; border-radius: var(--radius); font-size: 13px; }
+        .output-file-icon { font-size: 18px; }
+        .output-file-name { font-weight: 500; color: var(--gray-700); }
+        .output-file-desc { color: var(--gray-500); }
 
         /* Upload Section */
-        .card {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 28px;
-            border: 1px solid var(--gray-200);
-            margin-bottom: 24px;
-        }
-
-        .card-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--gray-900);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .card-hint { font-weight: 400; color: var(--gray-500); font-size: 13px; margin-left: 8px; }
-
-        .upload-area {
-            border: 2px dashed var(--gray-300);
-            border-radius: var(--radius-lg);
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: var(--gray-50);
-        }
-
-        .upload-area:hover, .upload-area.dragover {
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.05);
-        }
-
-        .upload-area-icon { font-size: 42px; margin-bottom: 12px; }
-        .upload-area-title { font-size: 16px; font-weight: 600; color: var(--gray-900); margin-bottom: 6px; }
-        .upload-area-subtitle { color: var(--gray-500); font-size: 14px; }
-
+        .upload-section { background: var(--white); border-radius: var(--radius-xl); padding: 28px; border: 1px solid var(--gray-200); margin-bottom: 24px; }
+        .section-title-sm { font-size: 16px; font-weight: 600; color: var(--gray-900); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .upload-hint { font-weight: 400; color: var(--gray-500); font-size: 13px; }
+        .upload-area { border: 2px dashed var(--gray-300); border-radius: var(--radius-lg); padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--gray-50); }
+        .upload-area:hover, .upload-area.dragover { border-color: var(--primary); background: rgba(99, 102, 241, 0.05); }
+        .upload-area-icon { font-size: 40px; margin-bottom: 12px; }
+        .upload-area-title { font-size: 16px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; }
+        .upload-area-subtitle { color: var(--gray-500); font-size: 13px; }
         .file-list { margin-top: 16px; }
-        .file-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            background: var(--gray-50);
-            border-radius: var(--radius);
-            margin-bottom: 8px;
-        }
-
-        .file-item-icon {
-            width: 36px;
-            height: 36px;
-            background: var(--primary);
-            border-radius: var(--radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-size: 14px;
-        }
-
-        .file-item-name { flex: 1; font-size: 14px; font-weight: 500; }
+        .file-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--gray-50); border-radius: var(--radius); margin-bottom: 8px; border: 1px solid var(--gray-200); }
+        .file-item-icon { width: 36px; height: 36px; background: var(--primary); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 14px; }
+        .file-item-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--gray-900); }
         .file-item-remove { color: var(--gray-400); cursor: pointer; padding: 4px 8px; font-size: 18px; }
         .file-item-remove:hover { color: var(--danger); }
 
         /* Options */
-        .option-group { margin-bottom: 18px; }
+        .options-section { background: var(--white); border-radius: var(--radius-xl); padding: 28px; border: 1px solid var(--gray-200); margin-bottom: 24px; }
+        .option-group { margin-bottom: 16px; }
         .option-group:last-child { margin-bottom: 0; }
         .option-label { display: block; font-size: 14px; font-weight: 500; color: var(--gray-700); margin-bottom: 6px; }
-
-        .option-input, .option-select {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--gray-300);
-            border-radius: var(--radius);
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .option-input:focus, .option-select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-
-        .option-checkbox { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .option-input, .option-select { width: 100%; padding: 10px 14px; border: 1px solid var(--gray-300); border-radius: var(--radius); font-size: 14px; transition: all 0.2s; background: var(--white); }
+        .option-input:focus, .option-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        .option-checkbox { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; color: var(--gray-700); }
         .option-checkbox input { width: 18px; height: 18px; accent-color: var(--primary); }
 
         /* Buttons */
-        .action-section { display: flex; gap: 16px; justify-content: center; }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            border-radius: var(--radius-lg);
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-
+        .action-section { display: flex; gap: 16px; justify-content: center; margin-top: 24px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: var(--radius-lg); font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
         .btn-primary { background: var(--gradient-2); color: var(--white); }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn-secondary { background: var(--gray-100); color: var(--gray-700); }
         .btn-secondary:hover { background: var(--gray-200); }
 
         /* Loading */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 260px;
-            right: 0;
-            bottom: 0;
-            background: rgba(255,255,255,0.95);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-
+        .loading-overlay { display: none; position: fixed; top: 0; left: 280px; right: 0; bottom: 0; background: rgba(255,255,255,0.95); z-index: 100; align-items: center; justify-content: center; flex-direction: column; }
         .loading-overlay.active { display: flex; }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid var(--gray-200);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
+        .loading-spinner { width: 50px; height: 50px; border: 4px solid var(--gray-200); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        .loading-text { font-size: 18px; font-weight: 600; color: var(--gray-900); }
-        .loading-subtext { font-size: 14px; color: var(--gray-500); margin-top: 8px; }
+        .loading-text { font-size: 18px; font-weight: 600; color: var(--gray-900); margin-bottom: 8px; }
+        .loading-subtext { font-size: 14px; color: var(--gray-500); }
 
         /* Results */
-        .results-section {
-            display: none;
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 28px;
-            border: 2px solid var(--accent);
-            margin-top: 24px;
-        }
-
+        .results-section { display: none; background: var(--white); border-radius: var(--radius-xl); padding: 28px; border: 2px solid var(--accent); margin-top: 24px; }
         .results-section.active { display: block; }
-
-        .results-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-        .results-icon {
-            width: 48px;
-            height: 48px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-size: 24px;
-        }
-
+        .results-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .results-icon { width: 52px; height: 52px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 26px; }
         .results-title { font-size: 20px; font-weight: 600; color: var(--gray-900); }
-
+        .results-subtitle { font-size: 14px; color: var(--gray-500); }
         .results-files { list-style: none; }
-        .results-file {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 14px;
-            background: var(--gray-50);
-            border-radius: var(--radius);
-            margin-bottom: 10px;
-        }
-
-        .results-file-icon { font-size: 24px; }
-        .results-file-name { flex: 1; font-weight: 500; }
+        .results-file { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--gray-50); border-radius: var(--radius); margin-bottom: 10px; }
+        .results-file-icon { font-size: 26px; }
+        .results-file-name { flex: 1; font-weight: 500; font-size: 14px; }
         .results-file-actions { display: flex; gap: 8px; }
-
-        .results-file-btn {
-            padding: 8px 16px;
-            border-radius: var(--radius);
-            font-size: 13px;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
+        .results-file-btn { padding: 8px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; text-decoration: none; transition: all 0.2s; }
         .results-file-btn.download { background: var(--primary); color: var(--white); }
+        .results-file-btn.download:hover { background: var(--primary-dark); }
         .results-file-btn.preview { background: var(--gray-200); color: var(--gray-700); }
+        .results-file-btn.preview:hover { background: var(--gray-300); }
 
         /* Messages */
-        .message {
-            padding: 14px 18px;
-            border-radius: var(--radius-lg);
-            margin-top: 16px;
-            display: none;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-        }
-
+        .message { padding: 14px 18px; border-radius: var(--radius-lg); margin-top: 16px; display: none; align-items: center; gap: 10px; font-size: 14px; }
         .message.active { display: flex; }
         .message.success { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent); color: #065f46; }
         .message.error { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: #991b1b; }
-        .message.info { background: rgba(99, 102, 241, 0.1); border: 1px solid var(--primary); color: #3730a3; }
-
-        /* Coming Soon */
-        .coming-soon {
-            text-align: center;
-            padding: 80px 40px;
-        }
-
-        .coming-soon-icon { font-size: 64px; margin-bottom: 20px; }
-        .coming-soon-title { font-size: 24px; font-weight: 600; color: var(--gray-900); margin-bottom: 8px; }
-        .coming-soon-text { color: var(--gray-500); }
+        .message.warning { background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); color: #92400e; }
 
         /* Responsive */
         @media (max-width: 1024px) {
-            .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; }
-            .hero, .section, .category-header, .tool-page-header, .tool-page-content { padding-left: 24px; padding-right: 24px; }
-            .mobile-toggle { display: flex; }
+            .hero, .features-section, .category-header, .tools-container, .tool-page-header, .tool-page-content { padding-left: 24px; padding-right: 24px; }
+            .loading-overlay { left: 0; }
         }
-
-        .mobile-toggle {
-            display: none;
-            position: fixed;
-            top: 16px;
-            left: 16px;
-            z-index: 1001;
-            width: 44px;
-            height: 44px;
-            background: var(--dark);
-            border-radius: var(--radius-lg);
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            cursor: pointer;
-            font-size: 20px;
-        }
-
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-        }
-
-        .sidebar-overlay.active { display: block; }
-
-        @media (max-width: 1024px) {
-            .mobile-toggle { display: flex; }
-        }
+        .mobile-toggle { display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; width: 48px; height: 48px; background: var(--dark); border-radius: var(--radius-lg); align-items: center; justify-content: center; color: var(--white); cursor: pointer; font-size: 20px; border: none; }
+        @media (max-width: 1024px) { .mobile-toggle { display: flex; } }
     </style>
 </head>
 <body>
-    <div class="mobile-toggle" onclick="toggleSidebar()">☰</div>
+    <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
     <!-- Sidebar -->
@@ -668,50 +238,48 @@
                 </div>
             </div>
         </div>
-
         <nav class="sidebar-nav">
             <div class="nav-section">
                 <div class="nav-section-title">Main</div>
-                <div class="nav-item active" data-page="home" onclick="showPage('home')">
+                <div class="nav-item active" onclick="showPage('home')" data-page="home">
                     <span class="nav-item-icon">🏠</span>
                     <span class="nav-item-text">Home</span>
                 </div>
             </div>
-
             <div class="nav-section">
                 <div class="nav-section-title">Tool Categories</div>
-                <div class="nav-item" data-page="xsd-tools" onclick="showPage('xsd-tools')">
+                <div class="nav-item" onclick="showPage('xsd-tools')" data-page="xsd-tools">
                     <span class="nav-item-icon">📋</span>
                     <span class="nav-item-text">XSD & XML Tools</span>
                     <span class="nav-item-badge">11</span>
                 </div>
-                <div class="nav-item" data-page="pdf-tools" onclick="showPage('pdf-tools')">
+                <div class="nav-item" onclick="showPage('pdf-tools')" data-page="pdf-tools">
                     <span class="nav-item-icon">📄</span>
                     <span class="nav-item-text">PDF Tools</span>
                     <span class="nav-item-badge soon">Soon</span>
                 </div>
-                <div class="nav-item" data-page="yaml-tools" onclick="showPage('yaml-tools')">
+                <div class="nav-item" onclick="showPage('yaml-tools')" data-page="yaml-tools">
                     <span class="nav-item-icon">📝</span>
                     <span class="nav-item-text">YAML Tools</span>
                     <span class="nav-item-badge soon">Soon</span>
                 </div>
-                <div class="nav-item" data-page="json-tools" onclick="showPage('json-tools')">
+                <div class="nav-item" onclick="showPage('json-tools')" data-page="json-tools">
                     <span class="nav-item-icon">{ }</span>
                     <span class="nav-item-text">JSON Tools</span>
                     <span class="nav-item-badge soon">Soon</span>
                 </div>
             </div>
-
             <div class="nav-section">
                 <div class="nav-section-title">Support</div>
-                <div class="nav-item" data-page="help" onclick="showPage('help')">
+                <div class="nav-item" onclick="showPage('help')" data-page="help">
                     <span class="nav-item-icon">❓</span>
                     <span class="nav-item-text">Help & Docs</span>
                 </div>
             </div>
         </nav>
-
-        <div class="sidebar-footer">Version 2.0.0</div>
+        <div class="sidebar-footer">
+            <div class="sidebar-footer-text">Version 2.0.0</div>
+        </div>
     </aside>
 
     <!-- Main Content -->
@@ -719,7 +287,7 @@
         <div class="loading-overlay" id="loadingOverlay">
             <div class="loading-spinner"></div>
             <div class="loading-text">Processing...</div>
-            <div class="loading-subtext" id="loadingSubtext">This may take a few moments</div>
+            <div class="loading-subtext" id="loadingSubtext">This may take a moment</div>
         </div>
 
         <!-- HOME PAGE -->
@@ -728,77 +296,29 @@
                 <div class="hero-content">
                     <div class="hero-badge">✨ Enterprise Document Toolkit</div>
                     <h1 class="hero-title">Powerful Tools for<br>Document Processing</h1>
-                    <p class="hero-subtitle">
-                        A comprehensive suite of tools for analyzing, validating, transforming, 
-                        and comparing XSD schemas, XML messages, PDFs, YAML, and more.
-                    </p>
+                    <p class="hero-subtitle">A comprehensive suite of tools for analyzing, validating, transforming, and comparing XSD schemas, XML messages, PDFs, and more.</p>
                     <div class="hero-stats">
-                        <div class="hero-stat">
-                            <div class="hero-stat-number">11+</div>
-                            <div class="hero-stat-label">XSD/XML Tools</div>
-                        </div>
-                        <div class="hero-stat">
-                            <div class="hero-stat-number">4</div>
-                            <div class="hero-stat-label">Categories</div>
-                        </div>
-                        <div class="hero-stat">
-                            <div class="hero-stat-number">ISO 20022</div>
-                            <div class="hero-stat-label">Compliant</div>
-                        </div>
+                        <div class="hero-stat"><div class="hero-stat-number">11</div><div class="hero-stat-label">XSD/XML Tools</div></div>
+                        <div class="hero-stat"><div class="hero-stat-number">4</div><div class="hero-stat-label">Categories</div></div>
+                        <div class="hero-stat"><div class="hero-stat-number">∞</div><div class="hero-stat-label">Possibilities</div></div>
                     </div>
                 </div>
             </section>
-
-            <section class="section">
+            <section class="features-section">
                 <div class="section-header">
                     <h2 class="section-title">Choose Your Tool Category</h2>
                     <p class="section-subtitle">Select a category to explore specialized tools</p>
                 </div>
-                <div class="category-grid">
-                    <div class="category-card" onclick="showPage('xsd-tools')">
-                        <div class="category-icon xsd">📋</div>
-                        <h3 class="category-title">XSD & XML Tools</h3>
-                        <p class="category-description">Complete toolkit for ISO 20022 and XML schema processing. Analyze, validate, compare, and transform schemas and messages.</p>
-                        <div class="category-tags">
-                            <span class="category-tag">Schema Analysis</span>
-                            <span class="category-tag">Validation</span>
-                            <span class="category-tag">Comparison</span>
-                            <span class="category-tag">+8 more</span>
-                        </div>
+                <div class="features-grid">
+                    <div class="feature-card" onclick="showPage('xsd-tools')">
+                        <div class="feature-icon xsd">📋</div>
+                        <h3 class="feature-title">XSD & XML Tools</h3>
+                        <p class="feature-description">Complete toolkit for ISO 20022 and XML schema processing.</p>
+                        <div class="feature-tools"><span class="feature-tool-tag">Schema Analysis</span><span class="feature-tool-tag">Validation</span><span class="feature-tool-tag">+9 more</span></div>
                     </div>
-
-                    <div class="category-card disabled">
-                        <div class="category-icon pdf">📄</div>
-                        <h3 class="category-title">PDF Tools</h3>
-                        <p class="category-description">Compare, merge, split, and extract content from PDF documents. OCR support for scanned documents.</p>
-                        <div class="category-tags">
-                            <span class="category-tag">Compare</span>
-                            <span class="category-tag">Merge</span>
-                            <span class="category-tag">Coming Soon</span>
-                        </div>
-                    </div>
-
-                    <div class="category-card disabled">
-                        <div class="category-icon yaml">📝</div>
-                        <h3 class="category-title">YAML Tools</h3>
-                        <p class="category-description">Validate, format, convert, and compare YAML configuration files. Perfect for DevOps.</p>
-                        <div class="category-tags">
-                            <span class="category-tag">Validate</span>
-                            <span class="category-tag">Format</span>
-                            <span class="category-tag">Coming Soon</span>
-                        </div>
-                    </div>
-
-                    <div class="category-card disabled">
-                        <div class="category-icon json">{ }</div>
-                        <h3 class="category-title">JSON Tools</h3>
-                        <p class="category-description">Schema validation, formatting, comparison, and transformation for JSON data.</p>
-                        <div class="category-tags">
-                            <span class="category-tag">Validate</span>
-                            <span class="category-tag">Compare</span>
-                            <span class="category-tag">Coming Soon</span>
-                        </div>
-                    </div>
+                    <div class="feature-card disabled"><div class="feature-icon pdf">📄</div><h3 class="feature-title">PDF Tools</h3><p class="feature-description">Compare, merge, split PDF documents.</p><div class="feature-tools"><span class="feature-tool-tag">Coming Soon</span></div></div>
+                    <div class="feature-card disabled"><div class="feature-icon yaml">📝</div><h3 class="feature-title">YAML Tools</h3><p class="feature-description">Validate and format YAML files.</p><div class="feature-tools"><span class="feature-tool-tag">Coming Soon</span></div></div>
+                    <div class="feature-card disabled"><div class="feature-icon json">{ }</div><h3 class="feature-title">JSON Tools</h3><p class="feature-description">JSON schema validation and transformation.</p><div class="feature-tools"><span class="feature-tool-tag">Coming Soon</span></div></div>
                 </div>
             </section>
         </div>
@@ -806,58 +326,65 @@
         <!-- XSD TOOLS HUB -->
         <div class="page" id="page-xsd-tools">
             <header class="category-header">
-                <div class="breadcrumb">
-                    <a href="#" onclick="showPage('home'); return false;">Home</a>
-                    <span>›</span>
-                    <span>XSD & XML Tools</span>
-                </div>
-                <h1 class="category-page-title">XSD & XML Tools</h1>
-                <p class="category-page-subtitle">Complete suite for ISO 20022 schema analysis, XML validation, comparison, and transformation.</p>
+                <div class="breadcrumb"><a onclick="showPage('home')">Home</a><span>›</span><span>XSD & XML Tools</span></div>
+                <h1 class="category-title">XSD & XML Tools</h1>
+                <p class="category-subtitle">Complete suite for ISO 20022 XSD schema analysis, XML validation, comparison, and transformation.</p>
             </header>
-
-            <section class="section">
-                <div class="tools-grid" id="xsdToolsGrid"></div>
-            </section>
+            <div class="tools-container"><div class="tools-grid" id="xsdToolsGrid"></div></div>
         </div>
 
         <!-- TOOL PAGE -->
         <div class="page" id="page-tool">
             <header class="tool-page-header">
-                <div class="tool-page-back" onclick="showPage('xsd-tools')">← Back to XSD & XML Tools</div>
+                <div class="tool-page-back" onclick="showPage('xsd-tools')">← Back to Tools</div>
                 <div class="tool-page-title-area">
                     <div class="tool-page-icon" id="toolPageIcon">📊</div>
                     <h1 class="tool-page-title" id="toolPageTitle">Tool Name</h1>
                 </div>
             </header>
-
             <div class="tool-page-content">
-                <div class="card">
-                    <h3 class="card-title">📁 Upload Files <span class="card-hint" id="uploadHint"></span></h3>
+                <!-- Guide Section -->
+                <div class="guide-section">
+                    <div class="guide-tabs">
+                        <div class="guide-tab active" onclick="switchGuideTab(this, 'when')">📌 When to Use</div>
+                        <div class="guide-tab" onclick="switchGuideTab(this, 'how')">📖 How to Use</div>
+                        <div class="guide-tab" onclick="switchGuideTab(this, 'output')">📦 Output</div>
+                        <div class="guide-tab" onclick="switchGuideTab(this, 'benefits')">✨ Benefits</div>
+                    </div>
+                    <div class="guide-content active" id="guide-when"></div>
+                    <div class="guide-content" id="guide-how"></div>
+                    <div class="guide-content" id="guide-output"></div>
+                    <div class="guide-content" id="guide-benefits"></div>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="upload-section">
+                    <h3 class="section-title-sm">📁 Upload Files <span class="upload-hint" id="uploadHint"></span></h3>
                     <div class="upload-area" id="uploadArea">
                         <div class="upload-area-icon">📤</div>
                         <div class="upload-area-title">Drop files here or click to browse</div>
-                        <div class="upload-area-subtitle">Supports .xsd, .xml, .zip files up to 100MB</div>
+                        <div class="upload-area-subtitle">Supports .xsd, .xml, .zip files</div>
                         <input type="file" id="fileInput" multiple accept=".xsd,.xml,.zip" style="display:none;">
                     </div>
                     <div class="file-list" id="fileList"></div>
                 </div>
 
-                <div class="card" id="optionsCard" style="display:none;">
-                    <h3 class="card-title">⚙️ Configuration Options</h3>
+                <!-- Options Section -->
+                <div class="options-section" id="optionsCard" style="display:none;">
+                    <h3 class="section-title-sm">⚙️ Options</h3>
                     <div id="optionsContent"></div>
                 </div>
 
+                <!-- Actions -->
                 <div class="action-section">
                     <button class="btn btn-secondary" onclick="resetTool()">🔄 Reset</button>
                     <button class="btn btn-primary" id="runToolBtn" disabled onclick="runTool()">🚀 Run Tool</button>
                 </div>
-
                 <div class="message" id="messageBox"></div>
-
                 <div class="results-section" id="resultsSection">
                     <div class="results-header">
                         <div class="results-icon">✓</div>
-                        <h3 class="results-title">Success! Your files are ready</h3>
+                        <div><h3 class="results-title">Success!</h3><p class="results-subtitle" id="resultsSubtitle">Files ready</p></div>
                     </div>
                     <ul class="results-files" id="resultsFiles"></ul>
                 </div>
@@ -865,226 +392,162 @@
         </div>
 
         <!-- Coming Soon Pages -->
-        <div class="page" id="page-pdf-tools">
-            <header class="category-header" style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);">
-                <div class="breadcrumb"><a href="#" onclick="showPage('home'); return false;">Home</a> <span>›</span> <span>PDF Tools</span></div>
-                <h1 class="category-page-title">PDF Tools</h1>
-                <p class="category-page-subtitle">Coming soon! PDF comparison, merging, splitting, and more.</p>
-            </header>
-            <div class="coming-soon">
-                <div class="coming-soon-icon">🚧</div>
-                <h2 class="coming-soon-title">Coming Soon</h2>
-                <p class="coming-soon-text">PDF tools are currently under development.</p>
-            </div>
-        </div>
-
-        <div class="page" id="page-yaml-tools">
-            <header class="category-header" style="background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);">
-                <div class="breadcrumb"><a href="#" onclick="showPage('home'); return false;">Home</a> <span>›</span> <span>YAML Tools</span></div>
-                <h1 class="category-page-title">YAML Tools</h1>
-                <p class="category-page-subtitle">Coming soon! YAML validation, formatting, and comparison.</p>
-            </header>
-            <div class="coming-soon">
-                <div class="coming-soon-icon">🚧</div>
-                <h2 class="coming-soon-title">Coming Soon</h2>
-                <p class="coming-soon-text">YAML tools are currently under development.</p>
-            </div>
-        </div>
-
-        <div class="page" id="page-json-tools">
-            <header class="category-header" style="background: linear-gradient(135deg, #f59e0b 0%, #eab308 100%);">
-                <div class="breadcrumb"><a href="#" onclick="showPage('home'); return false;">Home</a> <span>›</span> <span>JSON Tools</span></div>
-                <h1 class="category-page-title">JSON Tools</h1>
-                <p class="category-page-subtitle">Coming soon! JSON schema validation and transformation.</p>
-            </header>
-            <div class="coming-soon">
-                <div class="coming-soon-icon">🚧</div>
-                <h2 class="coming-soon-title">Coming Soon</h2>
-                <p class="coming-soon-text">JSON tools are currently under development.</p>
-            </div>
-        </div>
-
-        <div class="page" id="page-help">
-            <header class="category-header">
-                <h1 class="category-page-title">Help & Documentation</h1>
-                <p class="category-page-subtitle">Learn how to use the Enterprise Document Toolkit</p>
-            </header>
-            <section class="section">
-                <div class="card" style="max-width:800px;">
-                    <h3 class="card-title">🚀 Getting Started</h3>
-                    <p style="color:var(--gray-600);margin-bottom:20px;">
-                        Select a tool category from the sidebar, then choose a specific tool. Upload your files and configure any options before running the tool.
-                    </p>
-                    <h3 class="card-title" style="margin-top:24px;">📋 XSD & XML Tools</h3>
-                    <ul style="color:var(--gray-600);padding-left:20px;line-height:2;">
-                        <li><strong>Comprehensive Analysis:</strong> Extract all metadata from a single XSD file</li>
-                        <li><strong>Schema Documentation:</strong> Generate Excel workbook with complete structure</li>
-                        <li><strong>Compare Schemas:</strong> Find differences between two XSD versions</li>
-                        <li><strong>Multi-Schema Comparison:</strong> Compare 3+ schemas with matrix view</li>
-                        <li><strong>Test Data Generator:</strong> Create valid XML test files</li>
-                        <li><strong>XML Validator:</strong> Validate XML against XSD with business rules</li>
-                        <li><strong>XML Diff:</strong> Compare two XML files side by side</li>
-                        <li><strong>Batch Validator:</strong> Validate multiple XML files at once</li>
-                        <li><strong>Mapping Template:</strong> Generate implementation mapping Excel</li>
-                        <li><strong>XML Transformer:</strong> Convert between schema versions</li>
-                    </ul>
-                </div>
-            </section>
-        </div>
+        <div class="page" id="page-pdf-tools"><header class="category-header" style="background:linear-gradient(135deg,#ef4444 0%,#f97316 100%);"><div class="breadcrumb"><a onclick="showPage('home')">Home</a><span>›</span><span>PDF Tools</span></div><h1 class="category-title">PDF Tools</h1><p class="category-subtitle">Coming soon!</p></header><div class="tools-container" style="text-align:center;padding:100px;"><div style="font-size:80px;">🚧</div><h2 style="margin:24px 0 12px;">Coming Soon</h2><p style="color:var(--gray-500);">PDF tools under development.</p></div></div>
+        <div class="page" id="page-yaml-tools"><header class="category-header" style="background:linear-gradient(135deg,#10b981 0%,#14b8a6 100%);"><div class="breadcrumb"><a onclick="showPage('home')">Home</a><span>›</span><span>YAML Tools</span></div><h1 class="category-title">YAML Tools</h1><p class="category-subtitle">Coming soon!</p></header><div class="tools-container" style="text-align:center;padding:100px;"><div style="font-size:80px;">🚧</div><h2 style="margin:24px 0 12px;">Coming Soon</h2><p style="color:var(--gray-500);">YAML tools under development.</p></div></div>
+        <div class="page" id="page-json-tools"><header class="category-header" style="background:linear-gradient(135deg,#f59e0b 0%,#eab308 100%);"><div class="breadcrumb"><a onclick="showPage('home')">Home</a><span>›</span><span>JSON Tools</span></div><h1 class="category-title">JSON Tools</h1><p class="category-subtitle">Coming soon!</p></header><div class="tools-container" style="text-align:center;padding:100px;"><div style="font-size:80px;">🚧</div><h2 style="margin:24px 0 12px;">Coming Soon</h2><p style="color:var(--gray-500);">JSON tools under development.</p></div></div>
+        <div class="page" id="page-help"><header class="category-header"><div class="breadcrumb"><a onclick="showPage('home')">Home</a><span>›</span><span>Help</span></div><h1 class="category-title">Help & Documentation</h1></header><div class="tools-container"><div style="background:var(--white);padding:32px;border-radius:var(--radius-xl);max-width:800px;border:1px solid var(--gray-200);"><h2 style="margin-bottom:16px;">Getting Started</h2><p style="color:var(--gray-600);line-height:1.8;">Select a tool category from the sidebar, choose a tool, upload your files, and click Run. Each tool page includes detailed guidance on when to use it, how to use it, and what output to expect.</p></div></div></div>
     </main>
 
     <script>
-        // Tool Definitions
+        // Tool Definitions with Detailed Guides
         const xsdTools = [
             {
-                id: 'comprehensive',
-                icon: '📊',
-                title: 'Comprehensive Analysis',
-                badge: null,
-                description: 'Extract ALL metadata from an XSD schema including elements, types, annotations, yellow/white fields, restrictions, and patterns.',
-                features: ['Complete metadata extraction', 'Yellow/White field detection', 'Pattern analysis', 'JSON + Excel output'],
-                input: 'Upload 1 XSD file',
-                minFiles: 1,
-                options: null
+                id: 'comprehensive', icon: '📊', title: 'Comprehensive Analysis', badge: null,
+                description: 'Extract ALL metadata from an XSD schema including elements, types, annotations, yellow/white fields.',
+                features: ['Complete metadata', 'Yellow/White fields', 'Pattern analysis', 'JSON + Excel'],
+                input: 'Upload 1 XSD file', minFiles: 1, options: null,
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use Comprehensive Analysis when you need to:</p><ul><li>Understand the complete structure of an ISO 20022 or any XSD schema</li><li>Extract all element definitions, types, and constraints</li><li>Identify Yellow fields (required for specific schemes) and White fields (optional)</li><li>Get a quick overview before starting implementation</li><li>Document schema requirements for development teams</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload your XSD schema file (.xsd)</p><p><strong>Step 2:</strong> Click "Run Tool" to start the analysis</p><p><strong>Step 3:</strong> Download the generated Excel file with all metadata</p><p><strong>Tip:</strong> The analysis extracts annotations, patterns, enumerations, and all constraints defined in the schema.</p>',
+                    output: '<h4>📦 Output Files</h4><p>This tool generates:</p><div class="output-files"><div class="output-file"><span class="output-file-icon">📊</span><span class="output-file-name">analysis.xlsx</span><span class="output-file-desc">— Complete schema metadata in Excel format</span></div></div><p style="margin-top:16px;">The Excel file contains sheets for Elements, Types, Patterns, Enumerations, and Yellow/White field indicators.</p>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Save Hours</div><div class="guide-benefit-text">Instantly extract what would take hours to analyze manually</div></div><div class="guide-benefit"><div class="guide-benefit-title">Complete View</div><div class="guide-benefit-text">See every element, type, and constraint in one place</div></div><div class="guide-benefit"><div class="guide-benefit-title">Scheme Awareness</div><div class="guide-benefit-text">Identifies Yellow/White fields specific to payment schemes</div></div><div class="guide-benefit"><div class="guide-benefit-title">Ready to Share</div><div class="guide-benefit-text">Excel format perfect for team collaboration</div></div></div>'
+                }
             },
             {
-                id: 'document',
-                icon: '📄',
-                title: 'Schema Documentation',
-                badge: null,
-                description: 'Generate a comprehensive 3-sheet Excel workbook documenting the complete structure of your XSD schema.',
-                features: ['Hierarchical view', 'Element details', 'Type definitions', 'Professional formatting'],
-                input: 'Upload 1 XSD file',
-                minFiles: 1,
-                options: null
+                id: 'document', icon: '📄', title: 'Schema Documentation', badge: null,
+                description: 'Generate a comprehensive 3-sheet Excel workbook documenting the complete schema structure.',
+                features: ['Hierarchical view', 'Element details', 'Type definitions', 'Professional format'],
+                input: 'Upload 1 XSD file', minFiles: 1, options: null,
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use Schema Documentation when you need to:</p><ul><li>Create professional documentation for stakeholders</li><li>Generate a hierarchical view of the schema structure</li><li>Produce documentation for compliance or audit purposes</li><li>Share schema details with non-technical team members</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload your XSD schema file</p><p><strong>Step 2:</strong> Click "Run Tool"</p><p><strong>Step 3:</strong> Download the Excel workbook with 3 organized sheets</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">📊</span><span class="output-file-name">documentation.xlsx</span><span class="output-file-desc">— 3-sheet workbook with hierarchical structure</span></div></div><p style="margin-top:16px;">Sheets include: Overview, Element Hierarchy, and Type Definitions with professional formatting.</p>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Professional Output</div><div class="guide-benefit-text">Ready for stakeholder presentations</div></div><div class="guide-benefit"><div class="guide-benefit-title">Clear Hierarchy</div><div class="guide-benefit-text">Visual tree structure of elements</div></div><div class="guide-benefit"><div class="guide-benefit-title">Audit Ready</div><div class="guide-benefit-text">Complete documentation for compliance</div></div></div>'
+                }
             },
             {
-                id: 'compare',
-                icon: '🔄',
-                title: 'Compare 2 Schemas',
-                badge: null,
-                description: 'Find differences between two XSD schema versions. Generate detailed comparison reports in Excel, Word, and HTML.',
-                features: ['Side-by-side diff', 'Added/Removed detection', 'Change highlighting', 'Multiple formats'],
-                input: 'Upload 2 XSD files',
-                minFiles: 2,
-                options: [
-                    { type: 'text', id: 'name1', label: 'Schema 1 Name', placeholder: 'e.g., Production' },
-                    { type: 'text', id: 'name2', label: 'Schema 2 Name', placeholder: 'e.g., Staging' }
-                ]
+                id: 'compare', icon: '🔄', title: 'Compare 2 Schemas', badge: null,
+                description: 'Find differences between two XSD schema versions with detailed reports.',
+                features: ['Side-by-side diff', 'Change detection', 'Multiple formats', 'Filtering'],
+                input: 'Upload 2 XSD files', minFiles: 2,
+                options: [{ type: 'text', id: 'name1', label: 'Schema 1 Name', placeholder: 'e.g., Production' }, { type: 'text', id: 'name2', label: 'Schema 2 Name', placeholder: 'e.g., New Version' }],
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use Compare 2 Schemas when you need to:</p><ul><li>Identify differences between schema versions</li><li>Assess impact of schema upgrades</li><li>Document changes for change management</li><li>Compare production vs. development schemas</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload the first (baseline) XSD file</p><p><strong>Step 2:</strong> Upload the second (new/target) XSD file</p><p><strong>Step 3:</strong> Optionally name each schema for clearer reports</p><p><strong>Step 4:</strong> Click "Run Tool" to generate comparison</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">📊</span><span class="output-file-name">comparison.xlsx</span><span class="output-file-desc">— Detailed diff in Excel with filters</span></div><div class="output-file"><span class="output-file-icon">📝</span><span class="output-file-name">comparison.docx</span><span class="output-file-desc">— Word report for stakeholders</span></div><div class="output-file"><span class="output-file-icon">🌐</span><span class="output-file-name">comparison.html</span><span class="output-file-desc">— Interactive HTML report</span></div></div>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Impact Analysis</div><div class="guide-benefit-text">Quickly identify breaking changes</div></div><div class="guide-benefit"><div class="guide-benefit-title">Multiple Formats</div><div class="guide-benefit-text">Excel, Word, and HTML outputs</div></div><div class="guide-benefit"><div class="guide-benefit-title">Change Tracking</div><div class="guide-benefit-text">Added, removed, modified elements</div></div></div>'
+                }
             },
             {
-                id: 'multi_compare',
-                icon: '📈',
-                title: 'Multi-Schema Comparison',
-                badge: null,
-                description: 'Compare 3 or more XSD schemas simultaneously. Generate pairwise analysis, master matrix, and stakeholder reports.',
+                id: 'multi_compare', icon: '📈', title: 'Multi-Schema Comparison', badge: null,
+                description: 'Compare 3+ schemas simultaneously with matrix analysis.',
                 features: ['Matrix comparison', 'Pairwise analysis', 'Stakeholder reports', 'Version tracking'],
-                input: 'Upload 3+ XSD files',
-                minFiles: 3,
-                options: [
-                    { type: 'text', id: 'names', label: 'Schema Names (comma-separated)', placeholder: 'e.g., V1.0, V2.0, V3.0' }
-                ]
+                input: 'Upload 3+ XSD files', minFiles: 3,
+                options: [{ type: 'text', id: 'names', label: 'Schema Names (comma-separated)', placeholder: 'e.g., V1.0, V2.0, V3.0' }],
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use Multi-Schema Comparison when you need to:</p><ul><li>Compare multiple schema versions at once</li><li>Track evolution across 3+ releases</li><li>Create a comparison matrix for stakeholders</li><li>Analyze differences across regional variants</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload 3 or more XSD files</p><p><strong>Step 2:</strong> Optionally provide names for each schema</p><p><strong>Step 3:</strong> Click "Run Tool" for comprehensive analysis</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">📊</span><span class="output-file-name">matrix.xlsx</span><span class="output-file-desc">— Master comparison matrix</span></div><div class="output-file"><span class="output-file-icon">🌐</span><span class="output-file-name">report.html</span><span class="output-file-desc">— Interactive dashboard</span></div></div>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Big Picture View</div><div class="guide-benefit-text">See all versions at a glance</div></div><div class="guide-benefit"><div class="guide-benefit-title">Evolution Tracking</div><div class="guide-benefit-text">Understand how schema evolved</div></div></div>'
+                }
             },
             {
-                id: 'test_data',
-                icon: '🧪',
-                title: 'Test Data Generator',
-                badge: 'Popular',
-                description: 'Generate valid XML test files from your XSD with parameterized Debtor/Creditor data and realistic sample values.',
-                features: ['Multiple test profiles', 'ISO 20022 compliant', 'Configurable data', 'Batch generation'],
-                input: 'Upload 1 XSD file',
-                minFiles: 1,
+                id: 'test_data', icon: '🧪', title: 'Test Data Generator', badge: 'Popular',
+                description: 'Generate valid XML test files with realistic sample data.',
+                features: ['Multiple profiles', 'ISO 20022 compliant', 'Configurable', 'Batch generation'],
+                input: 'Upload 1 XSD file', minFiles: 1,
                 options: [
-                    { type: 'number', id: 'num_files', label: 'Number of Test Files', value: 5, min: 1, max: 100 },
+                    { type: 'number', id: 'num_files', label: 'Number of Files', value: 5, min: 1, max: 100 },
                     { type: 'select', id: 'profile', label: 'Test Profile', options: [
                         { value: 'domestic_sepa', label: '🇩🇪 Domestic SEPA (DE→DE)' },
-                        { value: 'cross_border', label: '🇪🇺 Cross-border SEPA (FR→IT)' },
-                        { value: 'instant_payment', label: '⚡ SEPA Instant (NL→ES)' },
+                        { value: 'cross_border', label: '🇪🇺 Cross-border (FR→IT)' },
+                        { value: 'instant_payment', label: '⚡ Instant (NL→ES)' },
                         { value: 'high_value', label: '💰 High Value (GB→CH)' },
-                        { value: 'nordic_domestic', label: '🇸🇪 Nordic Domestic (SE→DK)' },
+                        { value: 'nordic_domestic', label: '🇸🇪 Nordic (SE→DK)' },
                         { value: 'uk_faster_payment', label: '🇬🇧 UK Faster Payment' }
                     ]},
                     { type: 'checkbox', id: 'mandatory_only', label: 'Generate mandatory fields only' }
-                ]
+                ],
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use Test Data Generator when you need to:</p><ul><li>Create valid XML test messages for development</li><li>Generate sample data for QA testing</li><li>Produce realistic payment messages for demos</li><li>Test your system with various payment scenarios</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload your XSD schema</p><p><strong>Step 2:</strong> Select number of test files to generate</p><p><strong>Step 3:</strong> Choose a test profile (payment scenario)</p><p><strong>Step 4:</strong> Click "Run Tool" to generate XML files</p><p><strong>Tip:</strong> Each profile includes realistic debtor/creditor data, amounts, and dates.</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">📦</span><span class="output-file-name">test_data.zip</span><span class="output-file-desc">— ZIP containing all generated XML files</span></div></div><p style="margin-top:16px;">Each XML file is valid against the schema and contains realistic ISO 20022 payment data.</p>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">XSD Compliant</div><div class="guide-benefit-text">Generated XML validates against schema</div></div><div class="guide-benefit"><div class="guide-benefit-title">Realistic Data</div><div class="guide-benefit-text">IBANs, BICs, names, amounts</div></div><div class="guide-benefit"><div class="guide-benefit-title">Multiple Scenarios</div><div class="guide-benefit-text">Domestic, cross-border, instant</div></div><div class="guide-benefit"><div class="guide-benefit-title">Batch Generation</div><div class="guide-benefit-text">Generate up to 100 files at once</div></div></div>'
+                }
             },
             {
-                id: 'xml_validate',
-                icon: '✅',
-                title: 'XML Validator',
-                badge: null,
-                description: 'Validate XML messages against XSD schemas with comprehensive checking including ISO 20022 business rules.',
-                features: ['XSD validation', 'Business rules', 'IBAN/BIC format check', 'Detailed error report'],
-                input: 'Upload 1 XML + 1 XSD file',
-                minFiles: 2,
-                options: null
+                id: 'xml_validate', icon: '✅', title: 'XML Validator', badge: null,
+                description: 'Validate XML against XSD with ISO 20022 business rules.',
+                features: ['XSD validation', 'Business rules', 'IBAN/BIC check', 'Detailed report'],
+                input: 'Upload 1 XML + 1 XSD', minFiles: 2, options: null,
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use XML Validator when you need to:</p><ul><li>Validate an XML message against its schema</li><li>Check ISO 20022 business rules (Either/Or constraints)</li><li>Verify IBAN, BIC, LEI format compliance</li><li>Debug XML validation errors</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload your XML message file</p><p><strong>Step 2:</strong> Upload the XSD schema (or ZIP containing it)</p><p><strong>Step 3:</strong> Click "Run Tool" to validate</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">🌐</span><span class="output-file-name">validation.html</span><span class="output-file-desc">— Visual validation report</span></div><div class="output-file"><span class="output-file-icon">{ }</span><span class="output-file-name">validation.json</span><span class="output-file-desc">— Machine-readable results</span></div></div>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Comprehensive</div><div class="guide-benefit-text">XSD + business rule validation</div></div><div class="guide-benefit"><div class="guide-benefit-title">Format Checks</div><div class="guide-benefit-text">IBAN, BIC, LEI, dates verified</div></div><div class="guide-benefit"><div class="guide-benefit-title">Clear Errors</div><div class="guide-benefit-text">XPath location for each issue</div></div></div>'
+                }
             },
             {
-                id: 'xml_diff',
-                icon: '🔍',
-                title: 'XML Diff',
-                badge: 'New',
-                description: 'Compare two XML files to find all differences. Perfect for debugging, regression testing, and message comparison.',
-                features: ['Side-by-side view', 'Added/Removed/Changed', 'XPath locations', 'Visual HTML report'],
-                input: 'Upload 2 XML files',
-                minFiles: 2,
-                options: [
-                    { type: 'checkbox', id: 'ignore_order', label: 'Ignore element order' },
-                    { type: 'checkbox', id: 'compare_attributes', label: 'Compare attributes' }
-                ]
+                id: 'xml_diff', icon: '🔍', title: 'XML Diff', badge: 'New',
+                description: 'Compare two XML files to find all differences.',
+                features: ['Side-by-side', 'Change detection', 'XPath locations', 'HTML report'],
+                input: 'Upload 2 XML files', minFiles: 2,
+                options: [{ type: 'checkbox', id: 'ignore_order', label: 'Ignore element order' }, { type: 'checkbox', id: 'compare_attributes', label: 'Compare attributes' }],
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use XML Diff when you need to:</p><ul><li>Compare two XML messages for differences</li><li>Debug why a message is failing</li><li>Verify message transformations</li><li>Regression test XML output</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload the first (baseline) XML file</p><p><strong>Step 2:</strong> Upload the second (comparison) XML file</p><p><strong>Step 3:</strong> Choose comparison options</p><p><strong>Step 4:</strong> Click "Run Tool"</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">🌐</span><span class="output-file-name">diff.html</span><span class="output-file-desc">— Visual side-by-side diff</span></div></div>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Visual Diff</div><div class="guide-benefit-text">Color-coded changes</div></div><div class="guide-benefit"><div class="guide-benefit-title">XPath Locations</div><div class="guide-benefit-text">Exact location of each difference</div></div></div>'
+                }
             },
             {
-                id: 'batch_validate',
-                icon: '📦',
-                title: 'Batch Validator',
-                badge: 'New',
-                description: 'Validate multiple XML files at once against an XSD schema. Generate summary dashboard with pass/fail statistics.',
-                features: ['Bulk validation', 'Progress tracking', 'Pass/fail stats', 'Export to Excel'],
-                input: 'Upload 1 XSD + multiple XML files',
-                minFiles: 2,
-                options: null
+                id: 'batch_validate', icon: '📦', title: 'Batch Validator', badge: 'New',
+                description: 'Validate multiple XML files at once.',
+                features: ['Bulk validation', 'Progress tracking', 'Pass/fail stats', 'Excel export'],
+                input: 'Upload 1 XSD + XML files', minFiles: 2, options: null,
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use Batch Validator when you need to:</p><ul><li>Validate hundreds of XML files at once</li><li>Test migration data sets</li><li>Quality check bulk message exports</li><li>Generate compliance reports</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload your XSD schema</p><p><strong>Step 2:</strong> Upload multiple XML files (or a ZIP)</p><p><strong>Step 3:</strong> Click "Run Tool" to validate all</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">🌐</span><span class="output-file-name">batch_report.html</span><span class="output-file-desc">— Dashboard with pass/fail stats</span></div></div>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Bulk Processing</div><div class="guide-benefit-text">100s of files in seconds</div></div><div class="guide-benefit"><div class="guide-benefit-title">Statistics</div><div class="guide-benefit-text">Pass rate, error summary</div></div></div>'
+                }
             },
             {
-                id: 'mapping_template',
-                icon: '📋',
-                title: 'Mapping Template',
-                badge: 'New',
-                description: 'Generate Excel mapping templates for implementation teams with XPath, data types, sample values.',
-                features: ['Complete field list', 'XPath for every field', 'Sample values', 'Status tracking'],
-                input: 'Upload 1 XSD file',
-                minFiles: 1,
-                options: null
+                id: 'mapping_template', icon: '📋', title: 'Mapping Template', badge: 'New',
+                description: 'Generate Excel mapping templates for implementation.',
+                features: ['Complete field list', 'XPath mapping', 'Sample values', 'Status tracking'],
+                input: 'Upload 1 XSD file', minFiles: 1, options: null,
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use Mapping Template when you need to:</p><ul><li>Create field mapping documentation</li><li>Plan source-to-target transformations</li><li>Track implementation status per field</li><li>Document integration requirements</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload your target XSD schema</p><p><strong>Step 2:</strong> Click "Run Tool"</p><p><strong>Step 3:</strong> Download and fill in source mappings</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">📊</span><span class="output-file-name">mapping_template.xlsx</span><span class="output-file-desc">— Complete field mapping worksheet</span></div></div><p style="margin-top:16px;">Columns include: XPath, Element, Type, Sample Value, Source System, Source Field, Transformation Rule, Status.</p>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Implementation Ready</div><div class="guide-benefit-text">Complete field list with XPaths</div></div><div class="guide-benefit"><div class="guide-benefit-title">Track Progress</div><div class="guide-benefit-text">Status column for each field</div></div><div class="guide-benefit"><div class="guide-benefit-title">Sample Values</div><div class="guide-benefit-text">Pre-filled examples for reference</div></div></div>'
+                }
             },
             {
-                id: 'xml_transform',
-                icon: '🔁',
-                title: 'XML Transformer',
-                badge: 'New',
-                description: 'Transform XML messages between different schema versions. Auto-maps fields and generates transformation report.',
-                features: ['Version migration', 'Auto field mapping', 'Handles renames', 'Validation check'],
-                input: 'Upload 1 XML + 2 XSD files',
-                minFiles: 3,
-                options: null
+                id: 'xml_transform', icon: '🔁', title: 'XML Transformer', badge: 'New',
+                description: 'Transform XML between schema versions.',
+                features: ['Version migration', 'Auto mapping', 'Handles renames', 'Validation'],
+                input: 'Upload 1 XML + 2 XSD', minFiles: 3, options: null,
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use XML Transformer when you need to:</p><ul><li>Migrate XML from old to new schema version</li><li>Convert between regional variants</li><li>Transform pacs.008 v2 to v8 format</li><li>Upgrade messages to newer standards</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload your source XML message</p><p><strong>Step 2:</strong> Upload the source (original) XSD schema</p><p><strong>Step 3:</strong> Upload the target (new) XSD schema</p><p><strong>Step 4:</strong> Click "Run Tool" to transform</p>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">📄</span><span class="output-file-name">transformed.xml</span><span class="output-file-desc">— Transformed message</span></div><div class="output-file"><span class="output-file-icon">🌐</span><span class="output-file-name">transform_report.html</span><span class="output-file-desc">— Mapping report</span></div></div>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Auto Mapping</div><div class="guide-benefit-text">Automatically maps matching fields</div></div><div class="guide-benefit"><div class="guide-benefit-title">Transparency</div><div class="guide-benefit-text">Report shows all mappings used</div></div></div>'
+                }
             }
         ];
 
-        // State
-        let currentPage = 'home';
-        let currentTool = null;
-        let uploadedFiles = [];
+        let currentPage = 'home', currentTool = null, uploadedFiles = [];
 
         // Navigation
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            const page = document.getElementById('page-' + pageId);
-            if (page) page.classList.add('active');
-
+            document.getElementById('page-' + pageId)?.classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            const navItem = document.querySelector(`.nav-item[data-page="${pageId}"]`);
-            if (navItem) navItem.classList.add('active');
-
+            document.querySelector(`.nav-item[data-page="${pageId}"]`)?.classList.add('active');
             currentPage = pageId;
             if (pageId === 'xsd-tools') renderToolsGrid();
-
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebarOverlay').classList.remove('active');
         }
@@ -1094,212 +557,190 @@
             document.getElementById('sidebarOverlay').classList.toggle('active');
         }
 
-        // Render Tools Grid
         function renderToolsGrid() {
-            const grid = document.getElementById('xsdToolsGrid');
-            grid.innerHTML = xsdTools.map(tool => `
-                <div class="tool-card" onclick="openTool('${tool.id}')">
-                    <div class="tool-card-header">
-                        <div class="tool-card-icon">${tool.icon}</div>
-                        <div>
-                            <span class="tool-card-title">${tool.title}</span>
-                            ${tool.badge ? `<span class="tool-card-badge">${tool.badge}</span>` : ''}
-                        </div>
-                    </div>
-                    <p class="tool-card-description">${tool.description}</p>
-                    <div class="tool-card-features">
-                        ${tool.features.map(f => `<div class="tool-card-feature">${f}</div>`).join('')}
-                    </div>
-                    <div class="tool-card-input">📁 ${tool.input}</div>
+            document.getElementById('xsdToolsGrid').innerHTML = xsdTools.map(t => `
+                <div class="tool-card" onclick="openTool('${t.id}')">
+                    <div class="tool-card-header"><div class="tool-card-icon">${t.icon}</div><div><span class="tool-card-title">${t.title}</span>${t.badge ? `<span class="tool-card-badge">${t.badge}</span>` : ''}</div></div>
+                    <p class="tool-card-description">${t.description}</p>
+                    <div class="tool-card-features">${t.features.map(f => `<div class="tool-card-feature">${f}</div>`).join('')}</div>
+                    <div class="tool-card-input">📁 ${t.input}</div>
                     <div class="tool-card-arrow">→</div>
                 </div>
             `).join('');
         }
 
-        // Open Tool
+        function switchGuideTab(tab, contentId) {
+            document.querySelectorAll('.guide-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.guide-content').forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('guide-' + contentId).classList.add('active');
+        }
+
         function openTool(toolId) {
             const tool = xsdTools.find(t => t.id === toolId);
             if (!tool) return;
-
             currentTool = tool;
             uploadedFiles = [];
-
             document.getElementById('toolPageIcon').textContent = tool.icon;
             document.getElementById('toolPageTitle').textContent = tool.title;
-            document.getElementById('uploadHint').textContent = '(' + tool.input + ')';
+            document.getElementById('uploadHint').textContent = '— ' + tool.input;
             document.getElementById('fileList').innerHTML = '';
             document.getElementById('resultsSection').classList.remove('active');
             hideMessage();
 
-            const optionsCard = document.getElementById('optionsCard');
-            const optionsContent = document.getElementById('optionsContent');
+            // Load guide content
+            document.getElementById('guide-when').innerHTML = tool.guide.when;
+            document.getElementById('guide-how').innerHTML = tool.guide.how;
+            document.getElementById('guide-output').innerHTML = tool.guide.output;
+            document.getElementById('guide-benefits').innerHTML = tool.guide.benefits;
+            document.querySelectorAll('.guide-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+            document.querySelectorAll('.guide-content').forEach((c, i) => c.classList.toggle('active', i === 0));
 
-            if (tool.options && tool.options.length > 0) {
-                optionsCard.style.display = 'block';
-                optionsContent.innerHTML = tool.options.map(opt => {
-                    if (opt.type === 'text') {
-                        return `<div class="option-group"><label class="option-label">${opt.label}</label><input type="text" class="option-input" id="${opt.id}" placeholder="${opt.placeholder || ''}"></div>`;
-                    } else if (opt.type === 'number') {
-                        return `<div class="option-group"><label class="option-label">${opt.label}</label><input type="number" class="option-input" id="${opt.id}" value="${opt.value || 5}" min="${opt.min || 1}" max="${opt.max || 100}"></div>`;
-                    } else if (opt.type === 'select') {
-                        return `<div class="option-group"><label class="option-label">${opt.label}</label><select class="option-select" id="${opt.id}">${opt.options.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}</select></div>`;
-                    } else if (opt.type === 'checkbox') {
-                        return `<div class="option-group"><label class="option-checkbox"><input type="checkbox" id="${opt.id}"> ${opt.label}</label></div>`;
-                    }
+            // Options
+            const optCard = document.getElementById('optionsCard');
+            const optContent = document.getElementById('optionsContent');
+            if (tool.options?.length) {
+                optCard.style.display = 'block';
+                optContent.innerHTML = tool.options.map(o => {
+                    if (o.type === 'text') return `<div class="option-group"><label class="option-label">${o.label}</label><input type="text" class="option-input" id="${o.id}" placeholder="${o.placeholder||''}"></div>`;
+                    if (o.type === 'number') return `<div class="option-group"><label class="option-label">${o.label}</label><input type="number" class="option-input" id="${o.id}" value="${o.value||5}" min="${o.min||1}" max="${o.max||100}"></div>`;
+                    if (o.type === 'select') return `<div class="option-group"><label class="option-label">${o.label}</label><select class="option-select" id="${o.id}">${o.options.map(x=>`<option value="${x.value}">${x.label}</option>`).join('')}</select></div>`;
+                    if (o.type === 'checkbox') return `<div class="option-group"><label class="option-checkbox"><input type="checkbox" id="${o.id}"> ${o.label}</label></div>`;
                     return '';
                 }).join('');
-            } else {
-                optionsCard.style.display = 'none';
-            }
-
+            } else { optCard.style.display = 'none'; }
             updateRunButton();
-            showPage('tool');
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-tool').classList.add('active');
         }
 
         // File Upload
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
-        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-        uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
-        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        const uploadArea = document.getElementById('uploadArea'), fileInput = document.getElementById('fileInput');
+        uploadArea.onclick = () => fileInput.click();
+        uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add('dragover'); };
+        uploadArea.ondragleave = () => uploadArea.classList.remove('dragover');
+        uploadArea.ondrop = e => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFiles(e.dataTransfer.files); };
+        fileInput.onchange = e => handleFiles(e.target.files);
 
         function handleFiles(files) {
-            const formData = new FormData();
-            Array.from(files).forEach(file => {
-                if (file.name.match(/\.(xsd|xml|zip)$/i)) {
-                    formData.append('files[]', file);
+            const fd = new FormData();
+            let skipped = [];
+            
+            Array.from(files).forEach(f => { 
+                if (/\.(xsd|xml|zip)$/i.test(f.name)) {
+                    fd.append('files[]', f);
+                } else {
+                    skipped.push(f.name);
                 }
             });
-
-            if (formData.getAll('files[]').length === 0) {
-                showMessage('Please upload valid .xsd, .xml, or .zip files', 'error');
+            
+            if (skipped.length > 0 && fd.getAll('files[]').length === 0) {
+                showMessage(`Invalid file type(s): ${skipped.join(', ')}. Only .xsd, .xml, .zip allowed.`, 'error');
                 return;
             }
-
-            showLoading('Uploading files...');
-
-            fetch('/upload', { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => {
+            
+            if (!fd.getAll('files[]').length) { 
+                showMessage('Please select .xsd, .xml, or .zip files', 'error'); 
+                return; 
+            }
+            
+            showLoading('Uploading ' + fd.getAll('files[]').length + ' file(s)...');
+            
+            fetch('/upload', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(d => {
                     hideLoading();
-                    if (data.success) {
-                        uploadedFiles = [...uploadedFiles, ...data.files];
-                        renderFileList();
+                    if (d.success) { 
+                        uploadedFiles.push(...d.files); 
+                        renderFileList(); 
                         updateRunButton();
+                        if (d.warnings && d.warnings.length > 0) {
+                            showMessage(d.message || `${d.files.length} uploaded, ${d.warnings.length} skipped`, 'warning');
+                        }
                     } else {
-                        showMessage(data.error || 'Upload failed', 'error');
+                        // Show detailed error
+                        let errorMsg = d.error || 'Upload failed';
+                        if (d.suggestion) errorMsg += '. ' + d.suggestion;
+                        if (d.details && Array.isArray(d.details)) {
+                            errorMsg += ': ' + d.details.map(e => e.file + ' - ' + e.error).join('; ');
+                        }
+                        showMessage(errorMsg, 'error');
                     }
                 })
-                .catch(err => { hideLoading(); showMessage('Upload failed: ' + err.message, 'error'); });
+                .catch(e => { 
+                    hideLoading(); 
+                    showMessage('Upload failed: Network error', 'error'); 
+                });
         }
 
         function renderFileList() {
-            document.getElementById('fileList').innerHTML = uploadedFiles.map((file, idx) => `
-                <div class="file-item">
-                    <div class="file-item-icon">${file.match(/\.xsd$/i) ? '📋' : file.match(/\.xml$/i) ? '📄' : '📦'}</div>
-                    <div class="file-item-name">${file}</div>
-                    <div class="file-item-remove" onclick="removeFile(${idx})">×</div>
-                </div>
+            document.getElementById('fileList').innerHTML = uploadedFiles.map((f, i) => `
+                <div class="file-item"><div class="file-item-icon">${/\.xsd$/i.test(f)?'📋':/\.xml$/i.test(f)?'📄':'📦'}</div><div class="file-item-name">${f}</div><div class="file-item-remove" onclick="removeFile(${i})">×</div></div>
             `).join('');
         }
 
-        function removeFile(idx) {
-            uploadedFiles.splice(idx, 1);
-            renderFileList();
-            updateRunButton();
-        }
+        function removeFile(i) { uploadedFiles.splice(i, 1); renderFileList(); updateRunButton(); }
+        function updateRunButton() { document.getElementById('runToolBtn').disabled = !(currentTool && uploadedFiles.length >= currentTool.minFiles); }
 
-        function updateRunButton() {
-            document.getElementById('runToolBtn').disabled = !(currentTool && uploadedFiles.length >= currentTool.minFiles);
-        }
-
-        // Run Tool
         function runTool() {
             if (!currentTool) return;
-
-            const options = {};
-            if (currentTool.options) {
-                currentTool.options.forEach(opt => {
-                    const el = document.getElementById(opt.id);
-                    if (el) options[opt.id] = opt.type === 'checkbox' ? el.checked : el.value;
-                });
-            }
-
+            const opts = {};
+            currentTool.options?.forEach(o => { 
+                const el = document.getElementById(o.id); 
+                if (el) opts[o.id] = o.type === 'checkbox' ? el.checked : el.value; 
+            });
+            
             showLoading('Running ' + currentTool.title + '...');
-
-            fetch('/run_tool', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tool: currentTool.id, files: uploadedFiles, options: options })
+            
+            fetch('/run_tool', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ tool: currentTool.id, files: uploadedFiles, options: opts }) 
             })
-                .then(res => res.json())
-                .then(data => {
-                    hideLoading();
-                    if (data.success) {
-                        showResults(data.files, data.message);
-                    } else {
-                        showMessage(data.error || 'Tool execution failed', 'error');
+            .then(r => {
+                if (!r.ok && r.status === 504) {
+                    throw new Error('Tool execution timed out. Try with fewer or smaller files.');
+                }
+                return r.json();
+            })
+            .then(d => { 
+                hideLoading(); 
+                if (d.success) {
+                    let msg = d.message || 'Complete!';
+                    if (d.execution_time_seconds) {
+                        msg += ` (${d.execution_time_seconds}s)`;
                     }
-                })
-                .catch(err => { hideLoading(); showMessage('Error: ' + err.message, 'error'); });
+                    showResults(d.files, msg);
+                } else {
+                    let errorMsg = d.error || 'Tool execution failed';
+                    if (d.suggestion) errorMsg += '. 💡 ' + d.suggestion;
+                    if (d.error_code) console.error('Error code:', d.error_code);
+                    showMessage(errorMsg, 'error');
+                }
+            })
+            .catch(e => { 
+                hideLoading(); 
+                showMessage('Error: ' + e.message, 'error'); 
+            });
         }
 
-        function showResults(files, message) {
-            const resultsFiles = document.getElementById('resultsFiles');
-            resultsFiles.innerHTML = files.map(file => `
-                <li class="results-file">
-                    <span class="results-file-icon">${getFileIcon(file)}</span>
-                    <span class="results-file-name">${file}</span>
-                    <div class="results-file-actions">
-                        ${file.match(/\.html$/i) ? `<a href="/preview/${file}" target="_blank" class="results-file-btn preview">Preview</a>` : ''}
-                        <a href="/download/${file}" class="results-file-btn download">Download</a>
-                    </div>
-                </li>
+        function showResults(files, msg) {
+            document.getElementById('resultsSubtitle').textContent = msg || 'Files ready';
+            document.getElementById('resultsFiles').innerHTML = files.map(f => `
+                <li class="results-file"><span class="results-file-icon">${getIcon(f)}</span><span class="results-file-name">${f}</span>
+                <div class="results-file-actions">${/\.html$/i.test(f)?`<a href="/preview/${f}" target="_blank" class="results-file-btn preview">Preview</a>`:''}<a href="/download/${f}" class="results-file-btn download">Download</a></div></li>
             `).join('');
-
             document.getElementById('resultsSection').classList.add('active');
-            showMessage(message, 'success');
+            showMessage(msg, 'success');
         }
 
-        function getFileIcon(f) {
-            if (f.match(/\.xlsx$/i)) return '📊';
-            if (f.match(/\.docx$/i)) return '📝';
-            if (f.match(/\.html$/i)) return '🌐';
-            if (f.match(/\.json$/i)) return '{ }';
-            if (f.match(/\.xml$/i)) return '📄';
-            if (f.match(/\.zip$/i)) return '📦';
-            return '📁';
-        }
-
-        function resetTool() {
-            uploadedFiles = [];
-            renderFileList();
-            updateRunButton();
-            document.getElementById('resultsSection').classList.remove('active');
-            hideMessage();
-            fileInput.value = '';
-        }
-
-        // Loading & Messages
-        function showLoading(text) {
-            document.getElementById('loadingSubtext').textContent = text || 'Processing...';
-            document.getElementById('loadingOverlay').classList.add('active');
-        }
-
+        function getIcon(f) { if (/\.xlsx$/i.test(f)) return '📊'; if (/\.docx$/i.test(f)) return '📝'; if (/\.html$/i.test(f)) return '🌐'; if (/\.json$/i.test(f)) return '{ }'; if (/\.xml$/i.test(f)) return '📄'; if (/\.zip$/i.test(f)) return '📦'; return '📁'; }
+        function resetTool() { uploadedFiles = []; renderFileList(); updateRunButton(); document.getElementById('resultsSection').classList.remove('active'); hideMessage(); fileInput.value = ''; }
+        function showLoading(t) { document.getElementById('loadingSubtext').textContent = t; document.getElementById('loadingOverlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
-
-        function showMessage(text, type) {
-            const box = document.getElementById('messageBox');
-            box.textContent = text;
-            box.className = 'message active ' + type;
-        }
-
+        function showMessage(t, type) { const b = document.getElementById('messageBox'); b.textContent = t; b.className = 'message active ' + type; }
         function hideMessage() { document.getElementById('messageBox').className = 'message'; }
 
-        // Init
         renderToolsGrid();
     </script>
 </body>
