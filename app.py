@@ -24,6 +24,119 @@ import zipfile
 import shutil
 import json
 
+
+def _generate_validation_html(result: dict, output_path: str, xml_name: str, xsd_name: str):
+    """Generate HTML validation report"""
+    
+    valid_status = "✅ VALID" if result['valid'] else "❌ INVALID"
+    status_class = "valid" if result['valid'] else "invalid"
+    
+    issues_html = ""
+    for i, issue in enumerate(result.get('issues', []), 1):
+        severity_class = issue['severity'].lower()
+        severity_icon = "❌" if issue['severity'] == 'ERROR' else "⚠️" if issue['severity'] == 'WARNING' else "ℹ️"
+        
+        issues_html += f"""
+        <div class="issue {severity_class}">
+            <div class="issue-header">
+                <span class="severity">{severity_icon} {issue['severity']}</span>
+                <span class="category">{issue['category']}</span>
+            </div>
+            <div class="issue-element"><strong>Element:</strong> {issue['element']}</div>
+            {f"<div class='issue-path'><strong>Path:</strong> {issue['path']}</div>" if issue.get('path') else ""}
+            {f"<div class='issue-line'><strong>Line:</strong> {issue['line']}</div>" if issue.get('line') else ""}
+            <div class="issue-message"><strong>Message:</strong> {issue['message']}</div>
+            {f"<div class='issue-value'><strong>Value:</strong> <code>{issue['value']}</code></div>" if issue.get('value') else ""}
+            {f"<div class='issue-expected'><strong>Expected:</strong> {issue['expected']}</div>" if issue.get('expected') else ""}
+            {f"<div class='issue-suggestion'><strong>💡 Suggestion:</strong> {issue['suggestion']}</div>" if issue.get('suggestion') else ""}
+        </div>
+        """
+    
+    categories_html = ""
+    for cat, count in sorted(result.get('by_category', {}).items()):
+        categories_html += f"<li><strong>{cat}:</strong> {count}</li>"
+    
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>XML Validation Report</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+        .header {{ background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px; }}
+        .header h1 {{ margin: 0 0 10px 0; }}
+        .status {{ font-size: 24px; padding: 10px 20px; border-radius: 8px; display: inline-block; margin-top: 15px; }}
+        .status.valid {{ background: #10b981; }}
+        .status.invalid {{ background: #ef4444; }}
+        .summary {{ background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+        .summary h2 {{ margin-top: 0; color: #1a1a2e; }}
+        .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }}
+        .stat {{ background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }}
+        .stat .number {{ font-size: 32px; font-weight: bold; color: #1a1a2e; }}
+        .stat .label {{ color: #666; font-size: 14px; }}
+        .stat.errors .number {{ color: #ef4444; }}
+        .stat.warnings .number {{ color: #f59e0b; }}
+        .issues {{ background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+        .issues h2 {{ margin-top: 0; color: #1a1a2e; }}
+        .issue {{ border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px; }}
+        .issue.error {{ border-left: 4px solid #ef4444; background: #fef2f2; }}
+        .issue.warning {{ border-left: 4px solid #f59e0b; background: #fffbeb; }}
+        .issue.info {{ border-left: 4px solid #3b82f6; background: #eff6ff; }}
+        .issue-header {{ display: flex; justify-content: space-between; margin-bottom: 10px; }}
+        .severity {{ font-weight: bold; }}
+        .category {{ background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-size: 12px; }}
+        .issue-message {{ margin: 10px 0; }}
+        .issue-suggestion {{ color: #059669; margin-top: 10px; padding: 10px; background: #ecfdf5; border-radius: 4px; }}
+        code {{ background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace; }}
+        .file-info {{ color: #94a3b8; font-size: 14px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 XML Validation Report</h1>
+            <div class="file-info">
+                <div>📄 XML: {xml_name}</div>
+                <div>📋 XSD: {xsd_name}</div>
+                <div>🕐 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
+            </div>
+            <div class="status {status_class}">{valid_status}</div>
+        </div>
+        
+        <div class="summary">
+            <h2>📊 Summary</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="number">{result['summary']['total_issues']}</div>
+                    <div class="label">Total Issues</div>
+                </div>
+                <div class="stat errors">
+                    <div class="number">{result['summary']['errors']}</div>
+                    <div class="label">Errors</div>
+                </div>
+                <div class="stat warnings">
+                    <div class="number">{result['summary']['warnings']}</div>
+                    <div class="label">Warnings</div>
+                </div>
+                <div class="stat">
+                    <div class="number">{result['summary']['info']}</div>
+                    <div class="label">Info</div>
+                </div>
+            </div>
+            {f"<h3>By Category</h3><ul>{categories_html}</ul>" if categories_html else ""}
+        </div>
+        
+        <div class="issues">
+            <h2>📋 Issues Detail</h2>
+            {issues_html if issues_html else "<p>✅ No issues found!</p>"}
+        </div>
+    </div>
+</body>
+</html>"""
+    
+    with open(output_path, 'w') as f:
+        f.write(html)
+
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
@@ -51,7 +164,7 @@ def load_config():
         'CLEANUP_HOURS': int(os.environ.get('TOOLKIT_CLEANUP_HOURS', '24')),
         
         # Allowed file extensions
-        'ALLOWED_EXTENSIONS': {'xsd', 'xml'},
+        'ALLOWED_EXTENSIONS': {'xsd', 'xml', 'zip'},
     }
     
     # Load from config file if exists
@@ -318,13 +431,17 @@ def execute_tool(tool, file_paths, output_base, options):
         elif tool == 'test_data':
             script = os.path.join(tools_dir, 'xml_generator.py')
             num_files = int(options.get('num_files', 10))
-            scenario = options.get('scenario', 'valid')
+            profile = options.get('profile', 'domestic_sepa')
+            mandatory_only = options.get('mandatory_only', False)
             output_folder = os.path.join(output_dir, f"{output_base}_testdata")
             
             cmd = [sys.executable, script, file_paths[0], 
                    '-n', str(num_files), 
-                   '--scenario', scenario,
+                   '--profile', profile,
                    '-o', output_folder]
+            
+            if mandatory_only:
+                cmd.append('--mandatory')
             
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             
@@ -340,11 +457,244 @@ def execute_tool(tool, file_paths, output_base, options):
                 
                 return {
                     'success': True,
-                    'message': f'Generated {num_files} test XML files!',
+                    'message': f'Generated {num_files} test XML files with {profile} profile!',
                     'files': [os.path.basename(zip_path)]
                 }
             else:
                 return {'success': False, 'error': 'Test data generation failed'}
+        
+        elif tool == 'xml_validate':
+            script = os.path.join(tools_dir, 'xml_validator.py')
+            
+            # First file is XML, second is XSD (or ZIP containing XSD)
+            if len(file_paths) < 2:
+                return {'success': False, 'error': 'Need both XML file and XSD file'}
+            
+            xml_file = file_paths[0]
+            xsd_file = file_paths[1]
+            
+            # Determine which is XML and which is XSD
+            if xml_file.endswith('.xsd') or xml_file.endswith('.zip'):
+                xml_file, xsd_file = xsd_file, xml_file
+            
+            output_json = os.path.join(output_dir, f"{output_base}_validation.json")
+            output_html = os.path.join(output_dir, f"{output_base}_validation.html")
+            
+            cmd = [sys.executable, script, xml_file, xsd_file, '--json', '-o', output_json]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            
+            # Read the JSON result
+            if os.path.exists(output_json):
+                with open(output_json, 'r') as f:
+                    validation_result = json.load(f)
+                
+                # Generate HTML report
+                _generate_validation_html(validation_result, output_html, 
+                                         os.path.basename(xml_file), 
+                                         os.path.basename(xsd_file))
+                
+                return {
+                    'success': True,
+                    'message': f"Validation complete: {'✅ VALID' if validation_result['valid'] else '❌ ' + str(validation_result['summary']['errors']) + ' errors found'}",
+                    'files': [os.path.basename(output_html), os.path.basename(output_json)],
+                    'validation': validation_result
+                }
+            else:
+                error_msg = result.stderr or result.stdout or 'Validation failed'
+                return {'success': False, 'error': f'Validation failed: {error_msg[:200]}'}
+        
+        elif tool == 'xml_diff':
+            script = os.path.join(tools_dir, 'xml_diff.py')
+            
+            # Need exactly 2 XML files
+            if len(file_paths) < 2:
+                return {'success': False, 'error': 'Need 2 XML files to compare'}
+            
+            xml_file1 = file_paths[0]
+            xml_file2 = file_paths[1]
+            
+            output_html = os.path.join(output_dir, f"{output_base}_diff.html")
+            output_json = os.path.join(output_dir, f"{output_base}_diff.json")
+            
+            cmd = [sys.executable, script, xml_file1, xml_file2, '-o', output_html]
+            
+            # Add options
+            if options.get('ignore_order'):
+                cmd.append('--ignore-order')
+            if options.get('compare_attributes'):
+                cmd.append('--compare-attributes')
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            
+            if os.path.exists(output_html):
+                # Also save JSON
+                cmd_json = [sys.executable, script, xml_file1, xml_file2, '--json']
+                result_json = subprocess.run(cmd_json, capture_output=True, text=True, timeout=timeout)
+                
+                if result_json.stdout:
+                    try:
+                        diff_result = json.loads(result_json.stdout)
+                        with open(output_json, 'w') as f:
+                            json.dump(diff_result, f, indent=2)
+                        
+                        status = "✅ IDENTICAL" if diff_result.get('identical') else f"❌ {diff_result['summary']['total_differences']} differences"
+                        
+                        return {
+                            'success': True,
+                            'message': f"Comparison complete: {status}",
+                            'files': [os.path.basename(output_html), os.path.basename(output_json)],
+                            'diff': diff_result
+                        }
+                    except json.JSONDecodeError:
+                        pass
+                
+                return {
+                    'success': True,
+                    'message': 'Comparison complete',
+                    'files': [os.path.basename(output_html)]
+                }
+            else:
+                error_msg = result.stderr or result.stdout or 'Diff failed'
+                return {'success': False, 'error': f'Diff failed: {error_msg[:200]}'}
+        
+        elif tool == 'batch_validate':
+            script = os.path.join(tools_dir, 'batch_validator.py')
+            
+            # Need at least 1 XSD and 1 XML (or ZIP)
+            if len(file_paths) < 2:
+                return {'success': False, 'error': 'Need XSD file and XML files (or ZIP)'}
+            
+            # Find XSD file
+            xsd_file = None
+            xml_files = []
+            
+            for fp in file_paths:
+                if fp.endswith('.xsd'):
+                    xsd_file = fp
+                else:
+                    xml_files.append(fp)
+            
+            if not xsd_file:
+                return {'success': False, 'error': 'No XSD file found'}
+            
+            if not xml_files:
+                return {'success': False, 'error': 'No XML files found'}
+            
+            output_html = os.path.join(output_dir, f"{output_base}_batch_validation.html")
+            output_json = os.path.join(output_dir, f"{output_base}_batch_validation.json")
+            
+            cmd = [sys.executable, script, xsd_file] + xml_files + ['-o', output_html]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout * 3)
+            
+            # Also get JSON output
+            cmd_json = [sys.executable, script, xsd_file] + xml_files + ['--json']
+            result_json = subprocess.run(cmd_json, capture_output=True, text=True, timeout=timeout * 3)
+            
+            generated_files = []
+            if os.path.exists(output_html):
+                generated_files.append(os.path.basename(output_html))
+            
+            if result_json.stdout:
+                try:
+                    batch_result = json.loads(result_json.stdout)
+                    with open(output_json, 'w') as f:
+                        json.dump(batch_result, f, indent=2)
+                    generated_files.append(os.path.basename(output_json))
+                    
+                    summary = batch_result.get('summary', {})
+                    return {
+                        'success': True,
+                        'message': f"Batch validation complete: {summary.get('passed', 0)} passed, {summary.get('failed', 0)} failed ({summary.get('pass_rate', 'N/A')})",
+                        'files': generated_files,
+                        'batch_result': batch_result
+                    }
+                except json.JSONDecodeError:
+                    pass
+            
+            if generated_files:
+                return {
+                    'success': True,
+                    'message': 'Batch validation complete',
+                    'files': generated_files
+                }
+            else:
+                error_msg = result.stderr or result.stdout or 'Batch validation failed'
+                return {'success': False, 'error': f'Batch validation failed: {error_msg[:200]}'}
+        
+        elif tool == 'mapping_template':
+            script = os.path.join(tools_dir, 'mapping_generator.py')
+            
+            if not file_paths:
+                return {'success': False, 'error': 'Need XSD file'}
+            
+            xsd_file = file_paths[0]
+            output_xlsx = os.path.join(output_dir, f"{output_base}_mapping_template.xlsx")
+            
+            cmd = [sys.executable, script, xsd_file, '-o', output_xlsx, '--verbose']
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            
+            if os.path.exists(output_xlsx):
+                return {
+                    'success': True,
+                    'message': 'Mapping template generated successfully!',
+                    'files': [os.path.basename(output_xlsx)]
+                }
+            else:
+                error_msg = result.stderr or result.stdout or 'Generation failed'
+                return {'success': False, 'error': f'Mapping template generation failed: {error_msg[:200]}'}
+        
+        elif tool == 'xml_transform':
+            script = os.path.join(tools_dir, 'xml_transformer.py')
+            
+            # Need 1 XML + 2 XSD files (source and target schema)
+            if len(file_paths) < 3:
+                return {'success': False, 'error': 'Need 1 XML file + 2 XSD files (source schema and target schema)'}
+            
+            # Identify files
+            xml_file = None
+            xsd_files = []
+            
+            for fp in file_paths:
+                if fp.endswith('.xml'):
+                    xml_file = fp
+                elif fp.endswith('.xsd'):
+                    xsd_files.append(fp)
+            
+            if not xml_file:
+                return {'success': False, 'error': 'No XML file found'}
+            
+            if len(xsd_files) < 2:
+                return {'success': False, 'error': 'Need 2 XSD files (source and target schema)'}
+            
+            source_xsd = xsd_files[0]
+            target_xsd = xsd_files[1]
+            
+            output_xml = os.path.join(output_dir, f"{output_base}_transformed.xml")
+            output_html = os.path.join(output_dir, f"{output_base}_transform_report.html")
+            
+            cmd = [sys.executable, script, xml_file, source_xsd, target_xsd, 
+                   '-o', output_xml, '--report', output_html]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            
+            generated_files = []
+            if os.path.exists(output_xml):
+                generated_files.append(os.path.basename(output_xml))
+            if os.path.exists(output_html):
+                generated_files.append(os.path.basename(output_html))
+            
+            if generated_files:
+                return {
+                    'success': True,
+                    'message': f'XML transformation complete! Generated {len(generated_files)} files.',
+                    'files': generated_files
+                }
+            else:
+                error_msg = result.stderr or result.stdout or 'Transformation failed'
+                return {'success': False, 'error': f'XML transformation failed: {error_msg[:200]}'}
         
         else:
             return {'success': False, 'error': f'Unknown tool: {tool}'}

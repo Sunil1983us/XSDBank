@@ -1,0 +1,220 @@
+{
+  "profiles": {
+    "domestic_sepa": {
+      "description": "Domestic SEPA Credit Transfer",
+      "debtor": {
+        "name": "John Smith",
+        "iban": "DE89370400440532013000",
+        "bic": "DEUTDEFF",
+        "country": "DE",
+        "address": {
+          "street": "Hauptstrasse 123",
+          "city": "Berlin",
+          "postal_code": "10115",
+          "country": "DE"
+        }
+      },
+      "creditor": {
+        "name": "Maria Mueller",
+        "iban": "DE91100000000123456789",
+        "bic": "MARKDEFF",
+        "country": "DE",
+        "address": {
+          "street": "Friedrichstrasse 456",
+          "city": "Munich",
+          "postal_code": "80331",
+          "country": "DE"
+        }
+      },
+      "amount": {
+        "min": 10.00,
+        "max": 50000.00,
+        "currency": "EUR"
+      },
+      "service_level": "SEPA",
+      "local_instrument": "CORE",
+      "charge_bearer": "SLEV"
+    },
+    "cross_border": {
+      "description": "Cross-border SEPA Credit Transfer",
+      "debtor": {
+        "name": "Jean Dupont",
+        "iban": "FR7630006000011234567890189",
+        "bic": "BNPAFRPP",
+        "country": "FR",
+        "address": {
+          "street": "Rue de Rivoli 789",
+          "city": "Paris",
+          "postal_code": "75001",
+          "country": "FR"
+        }
+      },
+      "creditor": {
+        "name": "Giuseppe Rossi",
+        "iban": "IT60X0542811101000000123456",
+        "bic": "BLOPIT22",
+        "country": "IT",
+        "address": {
+          "street": "Via Roma 321",
+          "city": "Rome",
+          "postal_code": "00185",
+          "country": "IT"
+        }
+      },
+      "amount": {
+        "min": 100.00,
+        "max": 100000.00,
+        "currency": "EUR"
+      },
+      "service_level": "SEPA",
+      "local_instrument": "CORE",
+      "charge_bearer": "SLEV"
+    },
+    "instant_payment": {
+      "description": "SEPA Instant Credit Transfer",
+      "debtor": {
+        "name": "Emma Johnson",
+        "iban": "NL91ABNA0417164300",
+        "bic": "ABNANL2A",
+        "country": "NL",
+        "address": {
+          "street": "Keizersgracht 100",
+          "city": "Amsterdam",
+          "postal_code": "1015 CV",
+          "country": "NL"
+        }
+      },
+      "creditor": {
+        "name": "Carlos Garcia",
+        "iban": "ES9121000418450200051332",
+        "bic": "CAIXESBB",
+        "country": "ES",
+        "address": {
+          "street": "Gran Via 200",
+          "city": "Madrid",
+          "postal_code": "28013",
+          "country": "ES"
+        }
+      },
+      "amount": {
+        "min": 0.01,
+        "max": 100000.00,
+        "currency": "EUR"
+      },
+      "service_level": "NPCA",
+      "local_instrument": "INST",
+      "charge_bearer": "SHAR"
+    },
+    "high_value": {
+      "description": "High Value Payment",
+      "debtor": {
+        "name": "Global Corp Ltd",
+        "iban": "GB29NWBK60161331926819",
+        "bic": "NWBKGB2L",
+        "country": "GB",
+        "address": {
+          "street": "Canary Wharf 1",
+          "city": "London",
+          "postal_code": "E14 5AB",
+          "country": "GB"
+        }
+      },
+      "creditor": {
+        "name": "Swiss Holdings AG",
+        "iban": "CH9300762011623852957",
+        "bic": "CRESCHZZ",
+        "country": "CH",
+        "address": {
+          "street": "Bahnhofstrasse 50",
+          "city": "Zurich",
+          "postal_code": "8001",
+          "country": "CH"
+        }
+      },
+      "amount": {
+        "min": 100000.00,
+        "max": 99999999.99,
+        "currency": "EUR"
+      },
+      "service_level": "URGP",
+      "local_instrument": "CORE",
+      "charge_bearer": "SHAR"
+    },
+    "nordic_domestic": {
+      "description": "Nordic Domestic Payment (DKK/NOK/SEK)",
+      "debtor": {
+        "name": "Erik Svensson",
+        "iban": "SE4550000000058398257466",
+        "bic": "ESSESESS",
+        "country": "SE",
+        "address": {
+          "street": "Kungsgatan 10",
+          "city": "Stockholm",
+          "postal_code": "111 43",
+          "country": "SE"
+        }
+      },
+      "creditor": {
+        "name": "Lars Nielsen",
+        "iban": "DK5000400440116243",
+        "bic": "DABADKKK",
+        "country": "DK",
+        "address": {
+          "street": "Stroget 25",
+          "city": "Copenhagen",
+          "postal_code": "1150",
+          "country": "DK"
+        }
+      },
+      "amount": {
+        "min": 100.00,
+        "max": 500000.00,
+        "currency": "SEK"
+      },
+      "service_level": "NPCA",
+      "local_instrument": "INST",
+      "charge_bearer": "SLEV"
+    },
+    "uk_faster_payment": {
+      "description": "UK Faster Payment",
+      "debtor": {
+        "name": "James Wilson",
+        "iban": "GB82WEST12345698765432",
+        "bic": "WESTGB2L",
+        "country": "GB",
+        "address": {
+          "street": "Oxford Street 100",
+          "city": "London",
+          "postal_code": "W1D 1LL",
+          "country": "GB"
+        }
+      },
+      "creditor": {
+        "name": "Sarah Brown",
+        "iban": "GB33BUKB20201555555555",
+        "bic": "BUKBGB22",
+        "country": "GB",
+        "address": {
+          "street": "High Street 50",
+          "city": "Manchester",
+          "postal_code": "M1 1AD",
+          "country": "GB"
+        }
+      },
+      "amount": {
+        "min": 1.00,
+        "max": 250000.00,
+        "currency": "GBP"
+      },
+      "service_level": "URGP",
+      "local_instrument": "FPS",
+      "charge_bearer": "SLEV"
+    }
+  },
+  "default_profile": "domestic_sepa",
+  "metadata": {
+    "version": "1.0",
+    "description": "ISO 20022 Test Data Profiles for XML Generation",
+    "last_updated": "2024-01-15"
+  }
+}
