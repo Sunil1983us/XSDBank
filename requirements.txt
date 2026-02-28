@@ -1,48 +1,61 @@
-# ISO 20022 Payment Message Toolkit Requirements
-# Local Bank Network Deployment Version
-
-# ============================================================
-# Core Dependencies
-# ============================================================
-
-# XML Processing
-lxml==5.1.0
-
-# Excel file generation
-openpyxl==3.1.2
-
-# Word document generation
-python-docx==1.1.0
-
-# Test data generation with regex patterns
-rstr==3.2.0
-
-# HTML Report Generation (required for comparison HTML preview)
-Jinja2>=3.1.0
+# ISO 20022 Toolkit — Full Dependency List
+# Install with: pip install -r requirements.txt
+#
+# Tested versions (Python 3.10+)
+# Generated 2026-02-27
 
 # ============================================================
 # Web Framework
 # ============================================================
 
-# Flask web framework
-Flask==3.0.0
-
-# Werkzeug (Flask dependency)
+Flask>=3.0.0
 Werkzeug>=3.0.0
 
 # ============================================================
-# Production Server (Optional - for better performance)
+# XML / XSD Processing  (XSD & XML tools)
 # ============================================================
 
-# Waitress - Pure Python WSGI server (Windows compatible)
-waitress==2.1.2
+lxml>=5.1.0
 
 # ============================================================
-# Optional Dependencies
+# Excel Generation  (all tools that output .xlsx)
 # ============================================================
 
-# For better pattern generation (uncomment if needed)
-# faker==22.0.0
+openpyxl>=3.1.2
 
-# For scheduled cleanup tasks (uncomment if needed)
-# apscheduler==3.10.4
+# ============================================================
+# Word Document Generation  (schema comparison .docx reports)
+# ============================================================
+
+python-docx>=1.1.0
+
+# ============================================================
+# PDF Tools  (PDF Comparator, Table Extractor, Merger, Splitter, IG Extractor)
+# ============================================================
+
+# PDF parsing — text extraction, table detection, colour analysis
+pdfplumber>=0.10.0
+
+# PDF reading & writing — merge, split, page operations
+pypdf>=4.0.0
+
+# ============================================================
+# HTML Report Generation  (comparison and validation reports)
+# ============================================================
+
+Jinja2>=3.1.0
+
+# ============================================================
+# Test Data Generation  (XML Generator tool)
+# ============================================================
+
+# Regex-based random string generation for realistic test values
+rstr>=3.2.0
+
+# ============================================================
+# Production WSGI Server  (optional — replaces Flask dev server)
+# ============================================================
+
+# Waitress: pure-Python, Windows-compatible production server
+# Run with: waitress-serve --host=0.0.0.0 --port=5000 app:app
+waitress>=2.1.2

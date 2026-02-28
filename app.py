@@ -166,7 +166,7 @@ def load_config():
         'AUTO_CLEANUP_ENABLED': os.environ.get('TOOLKIT_AUTO_CLEANUP', 'True').lower() == 'true',
         
         # Allowed file extensions
-        'ALLOWED_EXTENSIONS': {'xsd', 'xml', 'zip'},
+        'ALLOWED_EXTENSIONS': {'xsd', 'xml', 'zip', 'pdf', 'yaml', 'yml', 'json'},
         
         # Limits
         'MAX_FILES_PER_UPLOAD': int(os.environ.get('TOOLKIT_MAX_FILES', '50')),
@@ -187,6 +187,14 @@ def load_config():
 
 # Load configuration
 CONFIG = load_config()
+
+# Resolve all folder paths to absolute, anchored to app.py's own directory.
+# This ensures tools can be imported and files found regardless of the working
+# directory at the time Flask handles a request.
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+for _key in ('UPLOAD_FOLDER', 'OUTPUT_FOLDER', 'TOOLS_FOLDER', 'LOG_FOLDER'):
+    if not os.path.isabs(CONFIG[_key]):
+        CONFIG[_key] = os.path.join(_BASE_DIR, CONFIG[_key])
 
 # ============================================================================
 # LOGGING SETUP
@@ -301,7 +309,7 @@ def upload_files():
                 errors.append({
                     'file': filename,
                     'error': f'Invalid file type: .{ext}',
-                    'suggestion': 'Only .xsd, .xml, and .zip files are allowed'
+                    'suggestion': 'Only .xsd, .xml, .zip, and .pdf files are allowed'
                 })
                 continue
             
@@ -375,6 +383,54 @@ def upload_files():
             'details': str(e) if CONFIG['DEBUG'] else 'Contact administrator'
         }), 500
 
+@app.route('/page_count', methods=['POST'])
+def page_count():
+    """Return page count for a PDF.
+    Accepts multipart FormData:
+      - files: uploaded PDF file  OR
+      - library_path: relative library path
+    Also accepts legacy JSON: { "file": "filename.pdf" }
+    """
+    try:
+        import pdfplumber
+        pdf_path = None
+
+        # Multipart: uploaded file
+        for f in request.files.getlist('files'):
+            if f and f.filename:
+                dest = Path(CONFIG['UPLOAD_FOLDER']) / f.filename.replace('/', '_')
+                f.save(str(dest))
+                pdf_path = str(dest)
+                break
+
+        # Multipart: library file
+        if not pdf_path:
+            lib_rel = request.form.get('library_path', '')
+            if lib_rel:
+                try:
+                    target = _safe_lib_path(lib_rel)
+                    if target.is_file():
+                        pdf_path = str(target)
+                except Exception:
+                    pass
+
+        # Legacy JSON fallback
+        if not pdf_path and request.is_json:
+            data = request.get_json() or {}
+            file_id = data.get('file', '')
+            candidate = os.path.join(CONFIG['UPLOAD_FOLDER'], os.path.basename(file_id))
+            if os.path.exists(candidate):
+                pdf_path = candidate
+
+        if not pdf_path:
+            return jsonify({'error': 'File not found'}), 404
+
+        with pdfplumber.open(pdf_path) as pdf:
+            return jsonify({'pages': len(pdf.pages), 'file': os.path.basename(pdf_path)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/run_tool', methods=['POST'])
 def run_tool():
     """Execute analysis tool with comprehensive error handling"""
@@ -396,7 +452,9 @@ def run_tool():
         
         # Validate tool
         valid_tools = ['comprehensive', 'document', 'compare', 'multi_compare', 'test_data', 
-                       'xml_validate', 'xml_diff', 'batch_validate', 'mapping_template', 'xml_transform']
+                       'xml_validate', 'xml_diff', 'batch_validate', 'mapping_template', 'xml_transform',
+                       'pdf_compare', 'pdf_table_extract', 'pdf_merge', 'pdf_split',
+                       'ig_extract', 'ig_diff', 'ig_change_tracker', 'ig_mapping', 'xsd_ig_analysis']
         
         if not tool:
             return jsonify({
@@ -422,6 +480,9 @@ def run_tool():
                 'suggestion': 'Upload files first, then run the tool'
             }), 400
         
+        # Also accept library_files: relative paths within the library folder
+        library_files = data.get('library_files', [])
+
         # Validate file paths
         file_paths = []
         missing_files = []
@@ -432,7 +493,19 @@ def run_tool():
                 file_paths.append(fp)
             else:
                 missing_files.append(f)
-        
+
+        # Resolve library file paths (with security check)
+        for rel in library_files:
+            try:
+                target = (LIBRARY_FOLDER / rel.lstrip('/')).resolve()
+                target.relative_to(LIBRARY_FOLDER.resolve())  # raises if escaping
+                if target.is_file():
+                    file_paths.append(str(target))
+                else:
+                    missing_files.append(rel)
+            except (ValueError, Exception):
+                missing_files.append(rel)
+
         if missing_files:
             logger.error(f"Files not found: {missing_files}")
             return jsonify({
@@ -860,15 +933,991 @@ def execute_tool(tool, file_paths, output_base, options):
                 error_msg = result.stderr or result.stdout or 'Transformation failed'
                 return {'success': False, 'error': f'XML transformation failed: {error_msg[:200]}'}
         
+        elif tool == 'pdf_compare':
+            if len(file_paths) < 2:
+                return {'success': False, 'error': 'Need 2 PDF files to compare'}
+
+            pdf_a = next((f for f in file_paths if f.endswith('.pdf')), None)
+            pdf_b = next((f for f in file_paths if f.endswith('.pdf') and f != pdf_a), None)
+            # If both are PDFs pick first two
+            pdfs = [f for f in file_paths if f.endswith('.pdf')]
+            if len(pdfs) < 2:
+                return {'success': False, 'error': 'Need 2 PDF files to compare'}
+            pdf_a, pdf_b = pdfs[0], pdfs[1]
+
+            output_html = os.path.join(output_dir, f"{output_base}_pdf_compare.html")
+
+            try:
+                sys.path.insert(0, tools_dir)
+                from pdf_comparator import compare_pdfs
+                result_data = compare_pdfs(pdf_a, pdf_b, output_html)
+                sim = result_data['overall_similarity']
+                return {
+                    'success': True,
+                    'message': f"PDF comparison complete — {sim}% overall similarity ({result_data['identical_pages']} identical, {result_data['changed_pages']} changed pages)",
+                    'files': [os.path.basename(output_html)]
+                }
+            except Exception as e:
+                return {'success': False, 'error': f'PDF comparison failed: {e}'}
+
+        elif tool == 'pdf_table_extract':
+            pdfs = [f for f in file_paths if f.endswith('.pdf')]
+            if not pdfs:
+                return {'success': False, 'error': 'Need at least 1 PDF file'}
+
+            output_files = []
+            try:
+                sys.path.insert(0, tools_dir)
+                from pdf_table_extractor import extract_tables_to_excel
+                for pdf in pdfs:
+                    stem = os.path.splitext(os.path.basename(pdf))[0]
+                    out_xlsx = os.path.join(output_dir, f"{output_base}_{stem}_tables.xlsx")
+                    result_data = extract_tables_to_excel(pdf, out_xlsx)
+                    output_files.append(os.path.basename(out_xlsx))
+                total_tables = result_data.get('total_tables', '?')
+                return {
+                    'success': True,
+                    'message': f"Extracted {total_tables} tables from {len(pdfs)} PDF(s) into Excel",
+                    'files': output_files
+                }
+            except Exception as e:
+                return {'success': False, 'error': f'PDF table extraction failed: {e}'}
+
+        elif tool == 'pdf_merge':
+            pdfs = [f for f in file_paths if f.endswith('.pdf')]
+            if len(pdfs) < 2:
+                return {'success': False, 'error': 'Need at least 2 PDF files to merge'}
+
+            output_pdf = os.path.join(output_dir, f"{output_base}_merged.pdf")
+            try:
+                sys.path.insert(0, tools_dir)
+                from pdf_merger_splitter import merge_pdfs
+                result_data = merge_pdfs(pdfs, output_pdf)
+                return {
+                    'success': True,
+                    'message': f"Merged {len(pdfs)} PDFs into 1 file ({result_data['total_pages']} total pages)",
+                    'files': [os.path.basename(output_pdf)]
+                }
+            except Exception as e:
+                return {'success': False, 'error': f'PDF merge failed: {e}'}
+
+        elif tool == 'pdf_split':
+            pdfs = [f for f in file_paths if f.endswith('.pdf')]
+            if not pdfs:
+                return {'success': False, 'error': 'Need 1 PDF file to split'}
+
+            pdf = pdfs[0]
+            mode       = options.get('split_mode', 'chunks')
+            chunk_size = int(options.get('chunk_size', 10))
+            ranges     = options.get('ranges', '')
+            split_dir  = os.path.join(output_dir, f"{output_base}_split")
+
+            try:
+                sys.path.insert(0, tools_dir)
+                from pdf_merger_splitter import split_pdf
+                result_data = split_pdf(
+                    pdf, split_dir,
+                    mode='ranges' if (mode == 'ranges' and ranges) else 'chunks',
+                    ranges=ranges if ranges else None,
+                    chunk_size=chunk_size,
+                    prefix=os.path.splitext(os.path.basename(pdf))[0]
+                )
+                # Zip the split files
+                zip_path = split_dir + '.zip'
+                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    for item in result_data['files_created']:
+                        fp = os.path.join(split_dir, item['file'])
+                        if os.path.exists(fp):
+                            zf.write(fp, item['file'])
+                shutil.rmtree(split_dir, ignore_errors=True)
+                n = len(result_data['files_created'])
+                return {
+                    'success': True,
+                    'message': f"Split into {n} PDF file(s) — download ZIP to get all",
+                    'files': [os.path.basename(zip_path)]
+                }
+            except Exception as e:
+                return {'success': False, 'error': f'PDF split failed: {e}'}
+
+        elif tool == 'ig_extract':
+            # ── Rulebook IG Extractor ─────────────────────────────────────────
+            # ISO 20022 Implementation Guide PDF → structured Excel workbook
+            # One sheet per message section, one row per field.
+            # Rows colour-coded: yellow = SEPA core mandatory, red = not permitted.
+            pdfs = [f for f in file_paths if f.endswith('.pdf')]
+            if not pdfs:
+                return {'success': False, 'error': 'Need at least 1 IG PDF file (.pdf)'}
+
+            # filter_sections comes from the section picker (list of section numbers like ['2.1.1'])
+            # or from the manual text field; filter_messages is list of message IDs
+            filter_messages = options.get('filter_messages', [])   # e.g. ['pacs.008.001.08']
+            filter_sections = options.get('filter_sections', [])   # e.g. ['2.1.1', '2.2.1']
+
+            try:
+                sys.path.insert(0, tools_dir)
+                from ig_extractor import extract_ig
+
+                output_files = []
+                total_fields = 0
+                for pdf_path in pdfs:
+                    stem = os.path.splitext(os.path.basename(pdf_path))[0]
+                    out_xlsx = os.path.join(output_dir, f"{output_base}_{stem}_IG.xlsx")
+                    result = extract_ig(
+                        pdf_path,
+                        out_xlsx,
+                        filter_messages=filter_messages if filter_messages else None,
+                        filter_sections=filter_sections if filter_sections else None,
+                    )
+                    output_files.append(os.path.basename(out_xlsx))
+                    total_fields += result.get('total_fields', 0)
+
+                sections_extracted = sum(len(result.get('sections', [])) for result in [result])
+                return {
+                    'success': True,
+                    'message': (
+                        f"Extracted {total_fields} fields from {len(output_files)} PDF(s). "
+                        f"One Excel sheet per message section with 🟡 yellow / ⬜ white / 🔴 red colour coding."
+                    ),
+                    'files': output_files
+                }
+            except ImportError:
+                return {
+                    'success': False,
+                    'error': 'ig_extractor module not found. Ensure ig_extractor.py is in the tools/ folder.',
+                    'suggestion': 'Copy ig_extractor.py into the tools/ directory alongside the other tool scripts.'
+                }
+            except Exception as e:
+                logger.error(f"IG extraction error: {e}", exc_info=True)
+                return {'success': False, 'error': f'IG extraction failed: {e}'}
+
+        elif tool == 'ig_diff':
+            # ── IG Diff — EPC vs NPC comparator ──────────────────────────────
+            xlsxs = [f for f in file_paths if f.lower().endswith('.xlsx')]
+            if len(xlsxs) < 2:
+                return {'success': False,
+                        'error': 'Upload exactly 2 IG Excel files (.xlsx) — e.g. EPC_IG.xlsx and NPC_IG.xlsx.'}
+
+            label_a = options.get('label_a', 'File A').strip() or 'File A'
+            label_b = options.get('label_b', 'File B').strip() or 'File B'
+
+            try:
+                sys.path.insert(0, tools_dir)
+                from ig_diff import diff_ig
+
+                out_name = f"{output_base}_IG_Diff_{label_a}_vs_{label_b}.xlsx"
+                out_path = os.path.join(output_dir, out_name)
+
+                result = diff_ig(xlsxs[0], xlsxs[1], out_path, label_a=label_a, label_b=label_b)
+
+                msgs = ', '.join(result['messages_compared'][:5])
+                if len(result['messages_compared']) > 5:
+                    msgs += f" +{len(result['messages_compared'])-5} more"
+
+                return {
+                    'success': True,
+                    'message': (
+                        f"Diff complete — {result['total_changes']} changes across "
+                        f"{len(result['sheets'])} message(s): {msgs}. "
+                        f"Unchanged rows grouped/hidden — use row group arrows to expand."
+                    ),
+                    'files': [os.path.basename(out_path)]
+                }
+            except ImportError:
+                return {'success': False,
+                        'error': 'ig_diff module not found. Ensure ig_diff.py is in the tools/ folder.'}
+            except Exception as e:
+                logger.error(f"IG diff error: {e}", exc_info=True)
+                return {'success': False, 'error': f'IG diff failed: {e}'}
+
+        elif tool == 'ig_change_tracker':
+            # ── Rulebook Change Tracker ───────────────────────────────────────
+            pdfs = [f for f in file_paths if f.lower().endswith('.pdf')]
+            if not pdfs:
+                return {'success': False,
+                        'error': 'Upload 1 or 2 IG PDF files — the tool will extract the change list from each.'}
+            try:
+                sys.path.insert(0, tools_dir)
+                from rulebook_change_tracker import extract_changes, track_changes
+                if len(pdfs) == 1:
+                    out_name = f"{output_base}_ChangeTracker.xlsx"
+                    out_path = os.path.join(output_dir, out_name)
+                    result   = extract_changes(pdfs[0], out_path)
+                    doc      = result['doc']
+                    msg = (f"Extracted {result['total_changes']} changes from "
+                           f"{doc.get('doc_number','')} {doc.get('version','')}. "
+                           f"Effective: {doc.get('date_effective','N/A')}.")
+                else:
+                    out_name = f"{output_base}_ChangeTracker_Comparison.xlsx"
+                    out_path = os.path.join(output_dir, out_name)
+                    result   = track_changes(pdfs[0], pdfs[1], out_path)
+                    msg = (f"Extracted {len(result['changes_a'])} changes from "
+                           f"{result['doc_a'].get('doc_number','Doc A')} and "
+                           f"{len(result['changes_b'])} changes from "
+                           f"{result['doc_b'].get('doc_number','Doc B')} — "
+                           f"{result['total_changes']} total.")
+                return {'success': True, 'message': msg, 'files': [os.path.basename(out_path)]}
+            except ImportError:
+                return {'success': False, 'error': 'rulebook_change_tracker module not found.'}
+            except Exception as e:
+                logger.error(f"Change tracker error: {e}", exc_info=True)
+                return {'success': False, 'error': f'Change tracker failed: {e}'}
+
+        
+        elif tool == 'ig_mapping':
+            # ── IG to Mapping Template ────────────────────────────────────────
+            xlsxs = [f for f in file_paths if f.lower().endswith('.xlsx')]
+            if not xlsxs:
+                return {'success': False,
+                        'error': 'Upload one IG Extractor Excel (.xlsx) file.'}
+
+            label_a     = options.get('scheme_label', '').strip() or ''
+            version_a   = options.get('version', '').strip() or ''
+            filter_mode = options.get('filter_mode', 'all').strip() or 'all'
+
+            try:
+                sys.path.insert(0, tools_dir)
+                from ig_mapping_template import generate_mapping
+
+                suffix = '_MandatoryOnly' if filter_mode == 'mandatory' else ''
+                out_name = f"{output_base}_Mapping_Template{suffix}.xlsx"
+                out_path = os.path.join(output_dir, out_name)
+
+                result = generate_mapping(
+                    xlsxs[0], out_path,
+                    scheme_label=label_a, version=version_a,
+                    filter_mode=filter_mode
+                )
+
+                sheets_str = ', '.join(s['message'] for s in result['sheets'][:5])
+                if len(result['sheets']) > 5:
+                    sheets_str += f" +{len(result['sheets'])-5} more"
+
+                return {
+                    'success': True,
+                    'message': (
+                        f"Mapping template ready — {result['total_fields']} fields across "
+                        f"{len(result['sheets'])} message(s): {sheets_str}. "
+                        f"{result['mandatory']} mandatory (🟡), "
+                        f"{result['optional']} optional (⬜), "
+                        f"{result['not_permitted']} not permitted (🔴). "
+                        f"Fill in the green Implementation columns for your team."
+                    ),
+                    'files': [os.path.basename(out_path)]
+                }
+            except ImportError:
+                return {'success': False,
+                        'error': 'ig_mapping_template module not found. Ensure ig_mapping_template.py is in tools/.'}
+            except Exception as e:
+                logger.error(f"IG mapping error: {e}", exc_info=True)
+                return {'success': False, 'error': f'Mapping template failed: {e}'}
+
+        elif tool == 'ig_mapping_xsd':
+            # ── IG to Mapping Template (XSD-Enriched) ────────────────────────
+            xlsxs = [f for f in file_paths if f.lower().endswith('.xlsx')]
+            xsds  = [f for f in file_paths if f.lower().endswith('.xsd')]
+            if not xlsxs:
+                return {'success': False, 'error': 'Upload one IG Extractor Excel (.xlsx) file.'}
+            if not xsds:
+                return {'success': False, 'error': 'Upload one XSD file (.xsd) for the target message.'}
+
+            scheme_label = options.get('scheme_label', '').strip() or 'NPC'
+            version      = options.get('version', '').strip() or ''
+            filter_mode  = options.get('filter_mode', 'all').strip() or 'all'
+
+            try:
+                sys.path.insert(0, tools_dir)
+                from ig_mapping_template_xsd import generate_mapping_xsd
+
+                suffix   = '_MandatoryOnly' if filter_mode == 'mandatory' else ''
+                out_name = f"{output_base}_Mapping_XSD{suffix}.xlsx"
+                out_path = os.path.join(output_dir, out_name)
+
+                result = generate_mapping_xsd(
+                    ig_excel_path=xlsxs[0],
+                    xsd_path=xsds[0],
+                    output_path=out_path,
+                    scheme_label=scheme_label,
+                    version=version,
+                    filter_mode=filter_mode,
+                )
+
+                sheets_str = ', '.join(s['message'] for s in result['sheets'][:4])
+                return {
+                    'success': True,
+                    'message': (
+                        f"XSD-enriched mapping template ready — {result['fields']} fields "
+                        f"({result['mandatory']} mandatory, {result['optional']} optional, "
+                        f"{result['not_permitted']} not-permitted). "
+                        f"{result['xsd_enriched']} fields enriched with XSD constraints "
+                        f"(patterns, enumerations, lengths). "
+                        f"Sheets: {sheets_str}."
+                    ),
+                    'files': [os.path.basename(out_path)]
+                }
+            except ImportError:
+                return {'success': False, 'error': 'ig_mapping_template_xsd module not found.'}
+            except Exception as e:
+                logger.error(f"IG mapping XSD error: {e}", exc_info=True)
+                return {'success': False, 'error': f'Mapping template failed: {e}'}
+
+        elif tool == 'xsd_ig_analysis':
+            # ── XSD vs IG Cross-Reference Analyser ───────────────────────────
+            xsd_files  = [f for f in file_paths if f.lower().endswith('.xsd')]
+            xlsx_files = [f for f in file_paths if f.lower().endswith('.xlsx')]
+
+            if not xsd_files:
+                return {'success': False, 'error': 'Upload at least one XSD file.'}
+            if not xlsx_files:
+                return {'success': False, 'error': 'Upload at least one IG Extractor Excel (.xlsx).'}
+
+            scheme_label   = options.get('scheme_label', '').strip() or ''
+            version        = options.get('version', '').strip() or ''
+            message_sheet  = options.get('message_sheet', '').strip() or ''
+
+            try:
+                sys.path.insert(0, tools_dir)
+                from xsd_ig_analyser import analyse
+
+                out_name = f"{output_base}_XSD_IG_Analysis.xlsx"
+                out_path = os.path.join(output_dir, out_name)
+
+                result = analyse(
+                    xsd_files[0], xlsx_files[0], out_path,
+                    message_sheet=message_sheet,
+                    scheme_label=scheme_label,
+                    version=version
+                )
+
+                return {
+                    'success': True,
+                    'message': (
+                        f"XSD vs IG analysis complete — {result['total']} fields analysed. "
+                        f"✅ {result['aligned']} aligned, "
+                        f"🔴 {result['excluded']} excluded by scheme, "
+                        f"🟡 {result['status_diff']} status differences, "
+                        f"🔵 {result['rules_diff']} rules differences, "
+                        f"🟠 {result['xsd_only']} in XSD only. "
+                        f"Sheet used: {result['sheet_used']}."
+                    ),
+                    'files': [os.path.basename(out_path)]
+                }
+            except ImportError:
+                return {'success': False, 'error': 'xsd_ig_analyser module not found.'}
+            except Exception as e:
+                logger.error(f"XSD IG analysis error: {e}", exc_info=True)
+                return {'success': False, 'error': f'XSD IG analysis failed: {e}'}
+
         else:
             return {'success': False, 'error': f'Unknown tool: {tool}'}
-            
+
     except subprocess.TimeoutExpired:
         logger.error(f"Tool {tool} timed out after {timeout}s")
         return {'success': False, 'error': f'Timeout after {timeout} seconds'}
     except Exception as e:
         logger.error(f"Tool execution error: {e}")
         return {'success': False, 'error': str(e)}
+
+# ── Document Library ─────────────────────────────────────────────────────────
+
+LIBRARY_FOLDER = Path(__file__).parent / 'library'
+LIBRARY_EXTS   = {'.xsd', '.xlsx', '.xlsm', '.pdf', '.xml'}
+FILE_ICONS     = {'.xsd': '📐', '.xlsx': '📊', '.xlsm': '📊', '.pdf': '📄', '.xml': '📝'}
+
+
+def _build_library_tree(root: Path) -> list:
+    """
+    Recursively walk the library folder and return a nested tree:
+    [
+      { "name": "RB25", "type": "folder", "path": "RB25", "children": [
+          { "name": "NPC", "type": "folder", "path": "RB25/NPC", "children": [
+              { "name": "pacs_008.xsd", "type": "file", "path": "RB25/NPC/pacs_008.xsd",
+                "ext": ".xsd", "icon": "📐", "size_kb": 42 }
+          ]}
+      ]}
+    ]
+    """
+    items = []
+    try:
+        entries = sorted(root.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
+    except PermissionError:
+        return items
+
+    for entry in entries:
+        if entry.name.startswith('.') or entry.name == 'README.md':
+            continue
+        rel = entry.relative_to(LIBRARY_FOLDER).as_posix()
+
+        if entry.is_dir():
+            children = _build_library_tree(entry)
+            items.append({
+                'name':     entry.name,
+                'type':     'folder',
+                'path':     rel,
+                'children': children,
+                'count':    sum(1 for c in children if c['type'] == 'file') +
+                            sum(c.get('count', 0) for c in children if c['type'] == 'folder')
+            })
+        elif entry.is_file() and entry.suffix.lower() in LIBRARY_EXTS:
+            items.append({
+                'name':    entry.name,
+                'type':    'file',
+                'path':    rel,
+                'ext':     entry.suffix.lower(),
+                'icon':    FILE_ICONS.get(entry.suffix.lower(), '📄'),
+                'size_kb': round(entry.stat().st_size / 1024, 1)
+            })
+
+    return items
+
+
+def _safe_lib_path(rel: str) -> Path:
+    """Resolve a relative library path safely, raising ValueError if escaping."""
+    target = (LIBRARY_FOLDER / rel.lstrip('/')).resolve()
+    target.relative_to(LIBRARY_FOLDER.resolve())  # raises ValueError if outside
+    return target
+
+def _sanitise_name(name: str) -> str:
+    """Strip dangerous characters from a file/folder name."""
+    import re
+    name = name.strip()
+    name = re.sub(r'[\\/:*?"<>|]', '_', name)  # Windows-unsafe chars
+    name = re.sub(r'\.\.+', '.', name)           # no double-dots
+    name = name.strip('. ')
+    return name[:120] if name else 'unnamed'
+
+
+@app.route('/library', methods=['GET'])
+def get_library():
+    """Return the document library tree as JSON."""
+    LIBRARY_FOLDER.mkdir(exist_ok=True)
+    tree = _build_library_tree(LIBRARY_FOLDER)
+    return jsonify({'success': True, 'tree': tree})
+
+
+@app.route('/library/folder', methods=['POST'])
+def library_create_folder():
+    """Create a new folder inside the library.
+    Body JSON: { "path": "RB25/NPC", "name": "NewFolder" }
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    parent_rel = data.get('path', '').strip('/')
+    name       = _sanitise_name(data.get('name', ''))
+    if not name:
+        return jsonify({'success': False, 'error': 'Folder name is required'}), 400
+    try:
+        parent = _safe_lib_path(parent_rel) if parent_rel else LIBRARY_FOLDER.resolve()
+        new_dir = parent / name
+        if new_dir.exists():
+            return jsonify({'success': False, 'error': f'"{name}" already exists'}), 409
+        new_dir.mkdir(parents=True)
+        rel = new_dir.relative_to(LIBRARY_FOLDER).as_posix()
+        logger.info(f"Library: created folder {rel}")
+        return jsonify({'success': True, 'path': rel})
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid path'}), 403
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/library/upload', methods=['POST'])
+def library_upload():
+    """Upload one or more files into a library folder.
+    Form fields:
+      - folder_path: relative path of target folder (empty = root)
+      - files: one or more file objects
+    """
+    folder_rel = request.form.get('folder_path', '').strip('/')
+    try:
+        target_dir = _safe_lib_path(folder_rel) if folder_rel else LIBRARY_FOLDER.resolve()
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid folder path'}), 403
+
+    if not target_dir.is_dir():
+        return jsonify({'success': False, 'error': 'Target folder does not exist'}), 404
+
+    files = request.files.getlist('files')
+    if not files:
+        return jsonify({'success': False, 'error': 'No files provided'}), 400
+
+    saved = []
+    errors = []
+    for f in files:
+        if not f or not f.filename:
+            continue
+        ext = Path(f.filename).suffix.lower()
+        if ext not in LIBRARY_EXTS:
+            errors.append(f'{f.filename}: unsupported type ({ext})')
+            continue
+        safe_name = _sanitise_name(Path(f.filename).stem) + ext
+        dest = target_dir / safe_name
+        # If name conflicts, append a counter
+        counter = 1
+        while dest.exists():
+            dest = target_dir / f"{_sanitise_name(Path(f.filename).stem)}_{counter}{ext}"
+            counter += 1
+        f.save(str(dest))
+        rel = dest.relative_to(LIBRARY_FOLDER).as_posix()
+        saved.append({'name': dest.name, 'path': rel,
+                      'ext': ext, 'icon': FILE_ICONS.get(ext, '📄'),
+                      'size_kb': round(dest.stat().st_size / 1024, 1)})
+        logger.info(f"Library: uploaded {rel}")
+
+    if not saved and errors:
+        return jsonify({'success': False, 'error': '; '.join(errors)}), 400
+    return jsonify({'success': True, 'files': saved, 'errors': errors})
+
+
+@app.route('/library/delete', methods=['POST'])
+def library_delete():
+    """Delete a file or empty folder from the library.
+    Body JSON: { "path": "RB25/NPC/file.xsd" }
+    """
+    import shutil
+    data = request.get_json(force=True, silent=True) or {}
+    rel  = data.get('path', '').strip('/')
+    if not rel:
+        return jsonify({'success': False, 'error': 'Path required'}), 400
+    try:
+        target = _safe_lib_path(rel)
+        if not target.exists():
+            return jsonify({'success': False, 'error': 'Not found'}), 404
+        if target.is_file():
+            target.unlink()
+        elif target.is_dir():
+            shutil.rmtree(str(target))
+        logger.info(f"Library: deleted {rel}")
+        return jsonify({'success': True})
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid path'}), 403
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/library/rename', methods=['POST'])
+def library_rename():
+    """Rename a file or folder in the library.
+    Body JSON: { "path": "RB25/NPC/old.xsd", "name": "new.xsd" }
+    """
+    data    = request.get_json(force=True, silent=True) or {}
+    rel     = data.get('path', '').strip('/')
+    new_name = _sanitise_name(data.get('name', ''))
+    if not rel or not new_name:
+        return jsonify({'success': False, 'error': 'path and name required'}), 400
+    try:
+        target  = _safe_lib_path(rel)
+        if not target.exists():
+            return jsonify({'success': False, 'error': 'Not found'}), 404
+        # Preserve extension for files
+        if target.is_file():
+            ext = target.suffix
+            if not new_name.endswith(ext):
+                new_name = _sanitise_name(Path(new_name).stem) + ext
+        dest = target.parent / new_name
+        if dest.exists():
+            return jsonify({'success': False, 'error': f'"{new_name}" already exists'}), 409
+        target.rename(dest)
+        new_rel = dest.relative_to(LIBRARY_FOLDER).as_posix()
+        logger.info(f"Library: renamed {rel} → {new_rel}")
+        return jsonify({'success': True, 'path': new_rel, 'name': dest.name})
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid path'}), 403
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/library_file', methods=['GET'])
+def get_library_file():
+    """
+    Copy a library file into the uploads temp folder and return its temp path.
+    The frontend then uses this temp path when submitting tool runs.
+    Query param: path=RB25/NPC/pacs_008.xsd
+    """
+    rel_path = request.args.get('path', '').lstrip('/')
+    if not rel_path:
+        return jsonify({'success': False, 'error': 'No path specified'}), 400
+
+    # Security: resolve and ensure it stays within library
+    try:
+        target = (LIBRARY_FOLDER / rel_path).resolve()
+        LIBRARY_FOLDER.resolve()  # ensure library exists
+        target.relative_to(LIBRARY_FOLDER.resolve())  # raises ValueError if escaping
+    except (ValueError, Exception) as e:
+        return jsonify({'success': False, 'error': 'Invalid path'}), 403
+
+    if not target.exists() or not target.is_file():
+        return jsonify({'success': False, 'error': 'File not found'}), 404
+
+    if target.suffix.lower() not in LIBRARY_EXTS:
+        return jsonify({'success': False, 'error': 'File type not allowed'}), 403
+
+    # Serve the file directly (no copy needed — tools read from path)
+    return send_file(str(target), as_attachment=False,
+                     download_name=target.name,
+                     mimetype='application/octet-stream')
+
+
+@app.route('/run', methods=['POST'])
+def run_tool_alias():
+    """
+    Alias for /run_tool used by the PDF and Rulebook tool panels.
+    Accepts multipart/form-data with:
+      - tool (str): tool ID
+      - files (file[]): uploaded files  OR
+      - library_files (str): JSON array of library relative paths
+    Mixes uploaded and library files transparently.
+    """
+    import json as _json
+
+    tool_id = request.form.get('tool', '').strip()
+    if not tool_id:
+        return jsonify({'success': False, 'error': 'No tool specified'}), 400
+
+    upload_dir = Path(CONFIG['UPLOAD_FOLDER'])
+    upload_dir.mkdir(exist_ok=True)
+
+    saved_paths = []
+
+    # 1) Regular uploaded files
+    for f in request.files.getlist('files'):
+        if f and f.filename:
+            safe = f.filename.replace('..', '').replace('/', '_').replace('\\', '_')
+            dest = upload_dir / safe
+            f.save(str(dest))
+            saved_paths.append(str(dest))
+
+    # 2) Library files referenced by relative path
+    lib_json = request.form.get('library_files', '')
+    if lib_json:
+        try:
+            lib_paths = _json.loads(lib_json)
+            for rel in lib_paths:
+                target = (LIBRARY_FOLDER / rel).resolve()
+                try:
+                    target.relative_to(LIBRARY_FOLDER.resolve())
+                except ValueError:
+                    continue
+                if target.is_file() and target.suffix.lower() in LIBRARY_EXTS:
+                    saved_paths.append(str(target))
+        except Exception as e:
+            logger.warning(f"library_files parse error: {e}")
+
+    if not saved_paths:
+        return jsonify({'success': False, 'error': 'No files provided'}), 400
+
+    # Build a fake request context for run_tool
+    # Pass as form params the same way run_tool expects them
+    extra_params = {k: v for k, v in request.form.items()
+                    if k not in ('tool', 'files', 'library_files')}
+
+    result = _dispatch_tool(tool_id, saved_paths, extra_params)
+    return jsonify(result)
+
+
+def _dispatch_tool(tool_id: str, file_paths: list, params: dict) -> dict:
+    """
+    Map tool_id → actual tool function/script, call it, return result dict.
+    {success, message, files: [{name, size}]}
+    """
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).parent / 'tools'))
+
+    output_dir = Path(CONFIG['OUTPUT_FOLDER'])
+    output_dir.mkdir(exist_ok=True)
+
+    try:
+        # ── IG Extractor ────────────────────────────────────────────────────
+        if tool_id == 'ig_extract':
+            from ig_extractor import extract_ig
+            pdf_files = [p for p in file_paths if p.endswith('.pdf')]
+            if not pdf_files:
+                return {'success': False, 'error': 'Need at least 1 IG PDF file (.pdf)'}
+
+            # Parse section / message filters from params
+            sections_raw  = params.get('sections', '')
+            msgs_raw      = params.get('filter_messages', '')
+            filter_sections = [s.strip() for s in sections_raw.split(',')  if s.strip()] or None
+            filter_messages = [s.strip() for s in msgs_raw.split(',')      if s.strip()] or None
+
+            logger.info(f"Running tool: ig_extract on {len(pdf_files)} file(s) with options: "
+                        f"{{'filter_messages': {filter_messages or []}, 'filter_sections': {filter_sections or []}}}")
+            import time as _time
+            _t0 = _time.time()
+
+            out_files   = []
+            total_fields = 0
+            try:
+                for pdf in pdf_files:
+                    stem = Path(pdf).stem
+                    out  = str(output_dir / f"{stem}_IG.xlsx")
+                    result = extract_ig(pdf, out,
+                                        filter_messages=filter_messages,
+                                        filter_sections=filter_sections)
+                    total_fields += result.get('total_fields', 0)
+                    out_files.append({'name': Path(out).name, 'size': Path(out).stat().st_size})
+
+                elapsed = round(_time.time() - _t0, 2)
+                logger.info(f"Tool ig_extract completed successfully in {elapsed}s")
+                return {
+                    'success': True,
+                    'message': (f"Extracted {total_fields} fields from {len(out_files)} PDF(s). "
+                                f"One Excel sheet per message section with 🟡 yellow / ⬜ white / 🔴 red colour coding."),
+                    'files': out_files
+                }
+            except Exception as e:
+                logger.error(f"IG extraction error: {e}", exc_info=True)
+                return {'success': False, 'error': f'IG extraction failed: {e}'}
+
+        # ── IG Diff ─────────────────────────────────────────────────────────
+        elif tool_id == 'ig_diff':
+            from ig_diff import diff_ig
+            xl_files = [p for p in file_paths if p.endswith(('.xlsx', '.xlsm'))]
+            if len(xl_files) < 2:
+                return {'success': False, 'error': 'Please provide 2 IG Excel files'}
+            label_a = params.get('label_a', 'File A')
+            label_b = params.get('label_b', 'File B')
+            out = str(output_dir / f"IG_Diff_{label_a}_vs_{label_b}.xlsx")
+            diff_ig(xl_files[0], xl_files[1], out, label_a=label_a, label_b=label_b)
+            return {'success': True, 'message': 'Diff complete',
+                    'files': [{'name': Path(out).name, 'size': Path(out).stat().st_size}]}
+
+        # ── Rulebook Change Tracker ──────────────────────────────────────────
+        elif tool_id == 'rulebook_changes':
+            from rulebook_change_tracker import track_changes
+            pdf_files = [p for p in file_paths if p.endswith('.pdf')]
+            if not pdf_files:
+                return {'success': False, 'error': 'Please provide a PDF file'}
+            out = str(output_dir / 'RulebookChanges.xlsx')
+            # track_changes(pdf_a, output_path, pdf_b=None) — pass second PDF if provided
+            pdf_b = pdf_files[1] if len(pdf_files) > 1 else None
+            track_changes(pdf_files[0], out, pdf_b=pdf_b)
+            return {'success': True, 'message': 'Change log extracted',
+                    'files': [{'name': 'RulebookChanges.xlsx', 'size': Path(out).stat().st_size}]}
+
+        # ── IG Mapping Template ──────────────────────────────────────────────
+        elif tool_id == 'ig_mapping':
+            from ig_mapping_template import generate_mapping
+            xl_files = [p for p in file_paths if p.endswith(('.xlsx', '.xlsm'))]
+            if not xl_files:
+                return {'success': False, 'error': 'Please provide an IG Excel file'}
+            scheme = params.get('scheme_label', 'EPC')
+            version = params.get('version', '')
+            out = str(output_dir / 'Mapping_Template.xlsx')
+            generate_mapping(xl_files[0], out, scheme_label=scheme, version=version)
+            return {'success': True, 'message': 'Mapping template ready',
+                    'files': [{'name': 'Mapping_Template.xlsx', 'size': Path(out).stat().st_size}]}
+
+        # ── IG Mapping (XSD-Enriched) ────────────────────────────────────────
+        elif tool_id == 'ig_mapping_xsd':
+            from ig_mapping_template_xsd import generate_mapping_xsd
+            xl_files = [p for p in file_paths if p.endswith(('.xlsx', '.xlsm'))]
+            xsd_files = [p for p in file_paths if p.endswith('.xsd')]
+            if not xl_files or not xsd_files:
+                return {'success': False, 'error': 'Please provide an IG Excel + XSD file'}
+            scheme = params.get('scheme_label', 'EPC')
+            version = params.get('version', '')
+            out = str(output_dir / 'Mapping_XSD.xlsx')
+            generate_mapping_xsd(xl_files[0], xsd_files[0], out,
+                                 scheme_label=scheme, version=version)
+            return {'success': True, 'message': 'XSD-enriched mapping ready',
+                    'files': [{'name': 'Mapping_XSD.xlsx', 'size': Path(out).stat().st_size}]}
+
+        # ── XSD vs IG Analyser ───────────────────────────────────────────────
+        elif tool_id == 'xsd_ig_analysis':
+            import xsd_ig_analyser as xa
+            xsd_files = [p for p in file_paths if p.endswith('.xsd')]
+            xl_files  = [p for p in file_paths if p.endswith(('.xlsx', '.xlsm'))]
+            if not xsd_files or not xl_files:
+                return {'success': False, 'error': 'Please provide 1 XSD + 1 IG Excel'}
+            scheme  = params.get('scheme_label', 'EPC')
+            version = params.get('version', '')
+            sheet   = params.get('message_sheet', '')
+            stem    = Path(xsd_files[0]).stem
+            out     = str(output_dir / f"{stem}_XSD_IG_Analysis.xlsx")
+            result  = xa.analyse(xsd_files[0], xl_files[0], out,
+                                 message_sheet=sheet or None,
+                                 scheme_label=scheme,
+                                 version=version)
+            return {'success': True,
+                    'message': f"{result['total']} fields — {result['aligned']} aligned, {result['status_diff']} status diffs",
+                    'files': [{'name': Path(out).name, 'size': Path(out).stat().st_size}]}
+
+        # ── PDF tools (also reachable via /run) ─────────────────────────────
+        elif tool_id in ('pdf_compare', 'pdf_table_extract', 'pdf_merge', 'pdf_split'):
+            # Re-use existing run_tool logic by calling it directly
+            return _run_pdf_tool(tool_id, file_paths, params)
+
+        # ── YAML API Schema Extractor ────────────────────────────────────────
+        elif tool_id == 'yaml_api_extract':
+            from yaml_api_extractor import extract_yaml_api
+            yaml_files = [p for p in file_paths
+                          if Path(p).suffix.lower() in ('.yaml', '.yml', '.json')]
+            if not yaml_files:
+                return {'success': False, 'error': 'No YAML/JSON file uploaded'}
+            endpoints_raw = params.get('filter_endpoints', '')
+            filter_eps    = [e.strip() for e in endpoints_raw.split(',') if e.strip()] or None
+            out           = str(output_dir / (Path(yaml_files[0]).stem + '_api_schema.xlsx'))
+            logger.info(f"Running yaml_api_extract on {Path(yaml_files[0]).name}, "
+                        f"filter_endpoints={filter_eps or 'ALL'}")
+            result = extract_yaml_api(yaml_files[0], out, filter_endpoints=filter_eps)
+            if not result.get('success'):
+                return {'success': False, 'error': result.get('error', 'Extraction failed')}
+            return {
+                'success': True,
+                'message': result['message'],
+                'files':   [{'name': Path(out).name, 'size': Path(out).stat().st_size}],
+            }
+
+        else:
+            return {'success': False, 'error': f'Unknown tool: {tool_id}'}
+
+    except ImportError as e:
+        logger.error(f"Tool import error ({tool_id}): {e}")
+        return {'success': False, 'error': f'Tool not installed: {e}'}
+    except Exception as e:
+        logger.error(f"Tool error ({tool_id}): {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+
+
+def _run_pdf_tool(tool_id: str, file_paths: list, params: dict) -> dict:
+    """Thin wrapper for PDF tools."""
+    output_dir = Path(CONFIG['OUTPUT_FOLDER'])
+    try:
+        if tool_id == 'pdf_compare':
+            from pdf_comparator import compare_pdfs
+            pdfs = [p for p in file_paths if p.endswith('.pdf')]
+            if len(pdfs) < 2:
+                return {'success': False, 'error': 'Need 2 PDF files'}
+            out = str(output_dir / 'PDF_Comparison.xlsx')
+            compare_pdfs(pdfs[0], pdfs[1], out)
+            return {'success': True, 'message': 'Comparison complete',
+                    'files': [{'name': 'PDF_Comparison.xlsx', 'size': Path(out).stat().st_size}]}
+
+        elif tool_id == 'pdf_table_extract':
+            from pdf_table_extractor import extract_tables_to_excel
+            pdfs = [p for p in file_paths if p.endswith('.pdf')]
+            if not pdfs:
+                return {'success': False, 'error': 'Need a PDF file'}
+            out = str(output_dir / f"{Path(pdfs[0]).stem}_tables.xlsx")
+            extract_tables_to_excel(pdfs[0], out)
+            return {'success': True, 'message': 'Tables extracted',
+                    'files': [{'name': Path(out).name, 'size': Path(out).stat().st_size}]}
+
+        elif tool_id == 'pdf_merge':
+            from pdf_merger_splitter import merge_pdfs
+            pdfs = [p for p in file_paths if p.endswith('.pdf')]
+            if len(pdfs) < 2:
+                return {'success': False, 'error': 'Need at least 2 PDF files'}
+            out = str(output_dir / 'Merged.pdf')
+            merge_pdfs(pdfs, out)
+            return {'success': True, 'message': f'Merged {len(pdfs)} PDFs',
+                    'files': [{'name': 'Merged.pdf', 'size': Path(out).stat().st_size}]}
+
+        elif tool_id == 'pdf_split':
+            from pdf_merger_splitter import split_pdf
+            pdfs = [p for p in file_paths if p.endswith('.pdf')]
+            if not pdfs:
+                return {'success': False, 'error': 'Need a PDF file'}
+            ranges = params.get('ranges', '').strip()
+            mode   = 'ranges' if ranges else 'pages'
+            result = split_pdf(pdfs[0], str(output_dir), mode=mode, ranges=ranges or None)
+            files_created = result.get('files_created', [])
+            return {'success': True, 'message': f'Split into {len(files_created)} part(s)',
+                    'files': [{'name': f['file'], 'size': Path(output_dir / f['file']).stat().st_size}
+                               for f in files_created]}
+
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+    return {'success': False, 'error': 'Unknown PDF tool'}
+
+
+@app.route('/detect_ig_sections', methods=['POST'])
+def detect_ig_sections():
+    """Detect message sections in an uploaded IG PDF for the section picker UI."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).parent / 'tools'))
+        from ig_extractor import detect_sections
+
+        upload_dir = Path(CONFIG['UPLOAD_FOLDER'])
+        upload_dir.mkdir(exist_ok=True)
+
+        # Accept uploaded file or library file path
+        pdf_path = None
+        for f in request.files.getlist('files'):
+            if f and f.filename and f.filename.endswith('.pdf'):
+                dest = upload_dir / f.filename.replace('/', '_')
+                f.save(str(dest))
+                pdf_path = str(dest)
+                break
+
+        lib_path = request.form.get('library_path', '')
+        if not pdf_path and lib_path:
+            target = (LIBRARY_FOLDER / lib_path).resolve()
+            try:
+                target.relative_to(LIBRARY_FOLDER.resolve())
+                if target.is_file():
+                    pdf_path = str(target)
+            except ValueError:
+                pass
+
+        if not pdf_path:
+            return jsonify({'success': False, 'error': 'No PDF provided'}), 400
+
+        sections = detect_sections(pdf_path)
+        logger.info(f"Section detection: {len(sections)} sections found in {Path(pdf_path).name}")
+        return jsonify({'success': True, 'sections': sections})
+
+    except ImportError:
+        return jsonify({'success': False, 'sections': [],
+                        'error': 'Section detection not available'}), 200
+    except Exception as e:
+        logger.error(f"Section detection error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/detect_yaml_endpoints', methods=['POST'])
+def detect_yaml_endpoints():
+    """Detect API endpoints in an uploaded OpenAPI/AsyncAPI YAML for the endpoint picker UI."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).parent / 'tools'))
+        from yaml_api_extractor import detect_endpoints
+
+        upload_dir = Path(CONFIG['UPLOAD_FOLDER'])
+        upload_dir.mkdir(exist_ok=True)
+
+        yaml_path = None
+        for f in request.files.getlist('files'):
+            if f and f.filename and Path(f.filename).suffix.lower() in ('.yaml', '.yml', '.json'):
+                dest = upload_dir / f.filename.replace('/', '_')
+                f.save(str(dest))
+                yaml_path = str(dest)
+                break
+
+        lib_path = request.form.get('library_path', '')
+        if not yaml_path and lib_path:
+            target = (LIBRARY_FOLDER / lib_path).resolve()
+            try:
+                target.relative_to(LIBRARY_FOLDER.resolve())
+                if target.is_file():
+                    yaml_path = str(target)
+            except ValueError:
+                pass
+
+        if not yaml_path:
+            return jsonify({'success': False, 'error': 'No YAML/JSON file provided'}), 400
+
+        endpoints = detect_endpoints(yaml_path)
+        logger.info(f"Endpoint detection: {len(endpoints)} endpoints found in {Path(yaml_path).name}")
+        return jsonify({'success': True, 'endpoints': endpoints})
+
+    except ImportError as e:
+        return jsonify({'success': False, 'endpoints': [],
+                        'error': f'yaml_api_extractor not available: {e}'}), 200
+    except Exception as e:
+        logger.error(f"Endpoint detection error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route('/download/<filename>')
 def download_file(filename):
@@ -890,6 +1939,67 @@ def preview_file(filename):
             return "Only HTML files can be previewed", 400
     except:
         return "File not found", 404
+
+
+@app.route('/pdf_info', methods=['POST'])
+def pdf_info():
+    """Return page count and detected IG sections for uploaded PDF(s).
+    Body: { "files": ["filename1.pdf", ...] }
+    Response: { "success": true, "results": { "filename.pdf": { "pages": N, "sections": [...] } } }
+    Each section: { section, label, message, page, display }
+    """
+    try:
+        data   = request.get_json() or {}
+        files  = data.get('files', [])
+        results = {}
+
+        for fname in files:
+            fpath = os.path.join(CONFIG['UPLOAD_FOLDER'], os.path.basename(fname))
+            if not os.path.exists(fpath):
+                results[fname] = {'error': 'File not found'}
+                continue
+            try:
+                import pdfplumber, re as _re
+                with pdfplumber.open(fpath) as pdf:
+                    page_count = len(pdf.pages)
+
+                    # Detect "X.Y.Z Use of ... (pacs/camt)" section headings
+                    section_re = _re.compile(
+                        r'((?:\d+\.)+\d+)[\.\s]+Use of\s+(.+?)\s*'
+                        r'\((pacs\.\d+\.\d+\.\d+|camt\.\d+\.\d+\.\d+)\)',
+                        _re.IGNORECASE
+                    )
+                    sections = []
+                    seen     = set()
+                    for pg_num, page in enumerate(pdf.pages, 1):
+                        text = page.extract_text() or ''
+                        for m in section_re.finditer(text):
+                            # Skip TOC dotted lines (e.g. "2.1.1 Use of ... ......... 11")
+                            surrounding = text[max(0, m.start() - 10):m.end() + 30]
+                            if _re.search(r'\.{5,}', surrounding):
+                                continue
+                            key = (m.group(1), m.group(3).lower())
+                            if key not in seen:
+                                seen.add(key)
+                                sections.append({
+                                    'section': m.group(1),
+                                    'label':   m.group(2).strip(),
+                                    'message': m.group(3).lower(),
+                                    'page':    pg_num,
+                                    'display': f"{m.group(1)} – {m.group(2).strip()} ({m.group(3)})"
+                                })
+
+                results[fname] = {'pages': page_count, 'sections': sections}
+
+            except Exception as e:
+                logger.error(f"pdf_info error for {fname}: {e}")
+                results[fname] = {'error': str(e)}
+
+        return jsonify({'success': True, 'results': results})
+
+    except Exception as e:
+        logger.error(f"pdf_info route error: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================================
 # MONITORING ENDPOINTS
@@ -938,7 +2048,14 @@ def status():
             'tools_available': [
                 'comprehensive', 'document', 'compare', 'multi_compare', 
                 'test_data', 'xml_validate', 'xml_diff', 'batch_validate',
-                'mapping_template', 'xml_transform'
+                'mapping_template', 'xml_transform',
+                'pdf_compare', 'pdf_table_extract', 'pdf_merge', 'pdf_split',
+                'ig_extract',
+                'ig_diff',
+                'ig_change_tracker',
+                'ig_mapping',
+                'xsd_ig_analysis',
+                'yaml_api_extract'
             ]
         })
     except Exception as e:

@@ -56,7 +56,7 @@ except ImportError:
 # =============================================================================
 
 def load_test_profiles() -> Dict:
-    """Load test profiles from JSON file in data folder"""
+    """Load 232323232232 profiles from JSON file in data folder"""
     # Try multiple locations for the profiles file
     possible_paths = [
         Path(__file__).parent.parent / 'data' / 'test_profiles.json',  # tools/../data/
@@ -879,7 +879,7 @@ Available profiles:
     )
     
     parser.add_argument('xsd_file', help='XSD schema file')
-    parser.add_argument('-n', '--num', type=int, default=1, help='Number of test files')
+    parser.add_argument('-n', '--num', type=int, default=1, help='Number of 232323232232 files')
     parser.add_argument('-o', '--output', default='test_data', help='Output directory')
     parser.add_argument('--profile', choices=list(DEFAULT_TEST_PROFILES.keys()),
                        default='domestic_sepa', help='Test data profile')
@@ -911,7 +911,7 @@ Available profiles:
         config_file = None
         print(f"Profile: {args.profile} - {profile.get('description', 'N/A')}")
     
-    print(f"\nGenerating {args.num} test XML file(s)...")
+    print(f"\nGenerating {args.num} 232323232232 XML file(s)...")
     
     generator = EnhancedTestDataGenerator(args.xsd_file, profile, config_file)
     
