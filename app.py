@@ -1784,6 +1784,37 @@ def _dispatch_tool(tool_id: str, file_paths: list, params: dict) -> dict:
             # Re-use existing run_tool logic by calling it directly
             return _run_pdf_tool(tool_id, file_paths, params)
 
+        # ── YAML / JSON Explorer ─────────────────────────────────────────────
+        elif tool_id == 'yaml_json_explorer':
+            from yaml_json_explorer import parse_file, generate_html, generate_excel
+            yj_files = [p for p in file_paths
+                        if Path(p).suffix.lower() in ('.yaml', '.yml', '.json')]
+            if not yj_files:
+                return {'success': False, 'error': 'Upload a .yaml, .yml, or .json file.'}
+            src      = yj_files[0]
+            fname    = Path(src).name
+            base     = Path(src).stem
+            html_name = f"{base}_explorer.html"
+            xlsx_name = f"{base}_structure.xlsx"
+            html_path = str(output_dir / html_name)
+            xlsx_path = str(output_dir / xlsx_name)
+            roots, stats, raw = parse_file(src)
+            generate_html(roots, stats, raw, fname, html_path)
+            generate_excel(roots, fname, xlsx_path)
+            ftype = stats['file_type']
+            return {
+                'success': True,
+                'message': (
+                    f"{ftype} Explorer complete — {stats['total_nodes']} nodes, "
+                    f"{stats['total_objects']} objects, {stats['total_arrays']} arrays, "
+                    f"max depth {stats['max_depth']}."
+                ),
+                'files': [
+                    {'name': html_name, 'type': 'html'},
+                    {'name': xlsx_name, 'type': 'xlsx'},
+                ],
+            }
+
         # ── YAML API Schema Extractor ────────────────────────────────────────
         elif tool_id == 'yaml_api_extract':
             from yaml_api_extractor import extract_yaml_api

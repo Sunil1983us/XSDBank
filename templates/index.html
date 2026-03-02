@@ -429,6 +429,7 @@
                 <div class="nav-item" onclick="showPage('yaml-tools')" data-page="yaml-tools">
                     <span class="nav-item-icon">📝</span>
                     <span class="nav-item-text">YAML Tools</span>
+                    <span class="nav-item-badge">2</span>
                 </div>
                 <div class="nav-item" onclick="showPage('json-tools')" data-page="json-tools">
                     <span class="nav-item-icon">{ }</span>
@@ -3061,6 +3062,18 @@
     <script>
         const yamlTools = [
             {
+                id: 'yaml_json_explorer', icon: '◈', title: 'YAML / JSON Explorer', badge: 'New',
+                description: 'Interactive visual explorer for YAML and JSON files — collapsible tree with type colour-coding, JSONPath copy, statistics panel, and an Excel flat-structure report.',
+                features: ['Interactive tree', 'Type colour-coding', 'JSONPath copy', 'Statistics & heatmap'],
+                input: 'Upload 1 YAML or JSON file', minFiles: 1, options: null,
+                guide: {
+                    when: '<h4>📌 When to Use This Tool</h4><p>Use YAML / JSON Explorer when you need to:</p><ul><li>Visually browse deeply nested YAML or JSON configuration files</li><li>Understand the structure of an OpenAPI spec, config file, or API response payload</li><li>Copy exact JSONPath expressions for any key in the document</li><li>Analyse type distribution, largest arrays, and most frequent keys at a glance</li><li>Share a self-contained interactive HTML explorer with your team</li></ul>',
+                    how: '<h4>📖 How to Use</h4><p><strong>Step 1:</strong> Upload a <code>.yaml</code>, <code>.yml</code>, or <code>.json</code> file.</p><p><strong>Step 2:</strong> Click <strong>"Run Tool"</strong>.</p><p><strong>Step 3:</strong> Click <strong>Preview</strong> on the HTML file to open the interactive explorer.</p><p><strong>Step 4:</strong> Download the Excel file for a flat structure report.</p><p><strong>Tips:</strong></p><ul><li>Use <strong>Expand / Collapse</strong> buttons or type <strong>L1/L2/L3</strong> to jump to depth levels.</li><li>Click any node in the tree to see its full value and JSONPath in the right panel.</li><li>Use the <strong>filter buttons</strong> (Objects / Arrays / Strings…) to isolate node types.</li></ul>',
+                    output: '<h4>📦 Output Files</h4><div class="output-files"><div class="output-file"><span class="output-file-icon">🌐</span><span class="output-file-name">*_explorer.html</span><span class="output-file-desc">— Self-contained interactive tree &amp; statistics explorer</span></div><div class="output-file"><span class="output-file-icon">📊</span><span class="output-file-name">*_structure.xlsx</span><span class="output-file-desc">— Flat structure report with JSONPath, type, depth &amp; value</span></div></div><p style="margin-top:16px;">The HTML file works offline and can be shared without any dependencies.</p>',
+                    benefits: '<h4>✨ Key Benefits</h4><div class="guide-benefits"><div class="guide-benefit"><div class="guide-benefit-title">Type Colour Coding</div><div class="guide-benefit-text">Object, Array, String, Number, Boolean and Null — each a distinct colour</div></div><div class="guide-benefit"><div class="guide-benefit-title">JSONPath Copy</div><div class="guide-benefit-text">One-click copy of the full JSONPath for any node</div></div><div class="guide-benefit"><div class="guide-benefit-title">Statistics Panel</div><div class="guide-benefit-text">Type distribution, largest arrays, most frequent key names</div></div><div class="guide-benefit"><div class="guide-benefit-title">Works with YAML &amp; JSON</div><div class="guide-benefit-text">Auto-detects format — handles OpenAPI specs, configs, payloads</div></div></div>'
+                }
+            },
+            {
                 id: 'yaml_api_extract', icon: '📄', title: 'API Schema Extractor', badge: 'New',
                 description: 'Upload an OpenAPI / AsyncAPI YAML spec. Detects every endpoint, lets you pick which ones to extract, and produces a structured Excel workbook — one sheet per endpoint with all parameters, request body, and response schemas fully expanded.',
                 features: ['🔗 Full $ref resolution', '📐 allOf / anyOf / oneOf merging', '🗂 One sheet per endpoint', '🎯 Endpoint picker UI'],
@@ -3310,12 +3323,16 @@
                 document.getElementById('loadingOverlay').style.display = 'none';
                 if (data.success) {
                     document.getElementById('yamlResultsSubtitle').textContent = data.message || 'Complete';
-                    document.getElementById('yamlResultsFiles').innerHTML = (data.files || []).map(f => `
-                        <li class="results-file-item">
-                            <span class="results-file-icon">📊</span>
+                    document.getElementById('yamlResultsFiles').innerHTML = (data.files || []).map(f => {
+                        const isHtml = /\.html$/i.test(f.name);
+                        const icon   = isHtml ? '🌐' : /\.xlsx$/i.test(f.name) ? '📊' : '📁';
+                        const preview = isHtml ? `<a href="/preview/${f.name}" target="_blank" class="results-file-btn preview">Preview</a>` : '';
+                        return `<li class="results-file">
+                            <span class="results-file-icon">${icon}</span>
                             <span class="results-file-name">${f.name}</span>
-                            <a href="/download/${f.name}" class="results-download-btn" download>⬇ Download</a>
-                        </li>`).join('');
+                            <div class="results-file-actions">${preview}<a href="/download/${f.name}" class="results-file-btn download">Download</a></div>
+                        </li>`;
+                    }).join('');
                     document.getElementById('yamlResultsSection').classList.add('active');
                 } else {
                     showYamlMessage('Error: ' + (data.error || 'Unknown error'), 'error');
