@@ -202,7 +202,25 @@ def parse_xsd(xsd_path):
             if ln is None: continue
             if ln == "element":
                 kids.append(build_element(child, path, visited))
-            elif ln in ("sequence","choice","all","group",
+            elif ln == "choice":
+                choice_kids = collect_children(child, path, visited)
+                c_props = {strip_ns(k): strip_ns(v) for k, v in child.attrib.items()}
+                try:
+                    raw = etree.tostring(child, pretty_print=True).decode()
+                except Exception:
+                    raw = ""
+                kids.append(mk_node(new_id(), "«choice»", "choice-group", path,
+                                    c_props, choice_kids, "", [], {}, "choice", raw, 0))
+            elif ln == "all":
+                all_kids = collect_children(child, path, visited)
+                a_props = {strip_ns(k): strip_ns(v) for k, v in child.attrib.items()}
+                try:
+                    raw = etree.tostring(child, pretty_print=True).decode()
+                except Exception:
+                    raw = ""
+                kids.append(mk_node(new_id(), "«all»", "all-group", path,
+                                    a_props, all_kids, "", [], {}, "all", raw, 0))
+            elif ln in ("sequence","group",
                         "complexContent","simpleContent",
                         "extension","restriction","complexType","simpleType"):
                 kids.extend(collect_children(child, path, visited))
@@ -307,12 +325,25 @@ def render_node(node, depth=0):
     circular = props.get("_circular")
     has_kids = bool(kids)
 
-    icon  = "◆" if kind=="attribute" else ("▣" if has_kids else "▢")
+    is_group = kind in ("choice-group", "all-group")
+    if kind == "attribute":
+        icon = "◆"
+    elif kind == "choice-group":
+        icon = "⊕"
+    elif kind == "all-group":
+        icon = "∀"
+    elif has_kids:
+        icon = "▣"
+    else:
+        icon = "▢"
+    # Show cm_badge on regular nodes with children; suppress for group nodes
+    # (the group node's own icon/label already conveys the content model)
     cm_badge = (f'<span class="cm-badge" style="color:{CM_COLOR.get(cm,"#888")}" '
-                f'title="content model: {cm}">{CM_ICON.get(cm,"")} {cm}</span>') if has_kids else ""
+                f'title="content model: {cm}">{CM_ICON.get(cm,"")} {cm}</span>') if (has_kids and not is_group) else ""
     circ  = '<span class="circ">↩ circular</span>' if circular else ""
     badges = props_badges(props, facets)
     xpath_val = node["xpath"].replace('"','&quot;')
+    nname_cls = "nname-group" if is_group else "nname"
 
     data = json.dumps({
         "id"          : nid,
@@ -335,7 +366,7 @@ def render_node(node, depth=0):
          f'{"onclick=\"toggleNode(this)\"" if has_kids else "onclick=\"selectNode(this)\""}'
          f'data-xpath="{xpath_val}">'
          f'{toggle} <span class="icon">{icon}</span>'
-         f'<span class="nname">{name}</span>'
+         f'<span class="{nname_cls}">{name}</span>'
          f'<span class="nkind k-{kind}">{kind}</span>'
          f'{cm_badge}{badges}{circ}'
          f'</div>')
@@ -476,6 +507,10 @@ ul.root-ul{{padding-left:0}}
 .k-element{{background:rgba(79,142,247,.15);color:var(--blue)}}
 .k-attribute{{background:rgba(167,139,250,.15);color:var(--purple)}}
 .k-ref{{background:rgba(52,217,151,.15);color:var(--green)}}
+.k-choice-group{{background:rgba(251,191,36,.18);color:var(--yellow)}}
+.k-all-group{{background:rgba(52,217,151,.15);color:var(--green)}}
+.nname-group{{color:var(--yellow);font-style:italic;font-family:'JetBrains Mono',monospace;font-size:.83rem}}
+.nrow.choice-row{{border-left:2px solid var(--yellow);background:rgba(251,191,36,.04)}}
 
 .cm-badge{{font-size:.68rem;font-weight:700;letter-spacing:.05em;flex-shrink:0;align-self:center;padding:0 4px}}
 
@@ -734,7 +769,11 @@ function selectNode(row) {{
 // ── Detail panel ──────────────────────────────────────────────────────────
 function renderDetail(nd) {{
   const kind    = nd.kind;
-  const kindCol = kind==='attribute' ? 'var(--purple)' : kind==='ref' ? 'var(--green)' : 'var(--blue)';
+  const kindCol = kind==='attribute'    ? 'var(--purple)'
+               : kind==='ref'           ? 'var(--green)'
+               : kind==='choice-group'  ? 'var(--yellow)'
+               : kind==='all-group'     ? 'var(--green)'
+               : 'var(--blue)';
   const props   = nd.props || {{}};
   const facets  = nd.facets || {{}};
 
@@ -1154,11 +1193,13 @@ def generate_excel(nodes, xsd_name, out_path):
     for c,k in enumerate(cols,1):
         ws.column_dimensions[get_column_letter(c)].width = widths.get(k,14)
 
-    alt  = PatternFill("solid",fgColor="EEF3FF")
-    attr = PatternFill("solid",fgColor="F5F0FF")
+    alt    = PatternFill("solid",fgColor="EEF3FF")
+    attr   = PatternFill("solid",fgColor="F5F0FF")
+    choice = PatternFill("solid",fgColor="FFF8DC")   # light amber for choice-group
     path_font  = Font(name="Consolas",size=9,color="1F5C8B")
     elem_font  = Font(name="Consolas",size=9)
     attr_font  = Font(name="Consolas",size=9,color="6A3E9E")
+    grp_font   = Font(name="Consolas",size=9,color="B8860B",italic=True)
 
     for ri,row in enumerate(rows,2):
         depth = row.get("depth",0)
@@ -1170,9 +1211,15 @@ def generate_excel(nodes, xsd_name, out_path):
             cell = ws.cell(ri,ci)
             cell.border = border
             cell.alignment = Alignment(vertical="center",wrap_text=(ci==len(cols)))
-            cell.font = path_font if ci==1 else (attr_font if kind=="attribute" else elem_font)
-            if kind=="attribute": cell.fill=attr
-            elif ri%2==0:         cell.fill=alt
+            if kind == "attribute":
+                cell.font = path_font if ci==1 else attr_font
+                cell.fill = attr
+            elif kind in ("choice-group","all-group"):
+                cell.font = path_font if ci==1 else grp_font
+                cell.fill = choice
+            else:
+                cell.font = path_font if ci==1 else elem_font
+                if ri%2==0: cell.fill=alt
         ws.row_dimensions[ri].height = 16
 
     # Summary sheet
